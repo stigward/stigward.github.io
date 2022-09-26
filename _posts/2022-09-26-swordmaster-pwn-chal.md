@@ -103,7 +103,7 @@ As shown above, our "Class" now seems to contain garbage data instead of "Mage".
 You may notice that these hex values are the address of the previous chunk and the address of the first chunk respectively, thus leaking the address of the heap. I spent a while on this bug seeing if there was any way to weaponize it more, but the leak is the only primative it gives us. This will be helpful to bypass ASLR, but we will need another bug (or two) in order to craft an exploit.
 
 ### Heap Metadata Corruption:
-Our second bug is in the binary's "Craft Sword" functionaity, which is option 1 in the game menu.
+Our second bug is in the binary's "Craft Sword" functionality, which is option 1 in the game menu.
 
 ![sword handler](sword_handler.png)
 
@@ -115,7 +115,7 @@ Now, observing our heap we see the following:
 
 ![top chunk overwrite](top_chunk_overwrite_mem.png)
 
-We can see that our 7 byte overwrite affects the size of the top chunk in our program. Nice! This indicates we may be able to execute a [House Of Force](https://heap-exploitation.dhavalkapil.com/attacks/house_of_force) attack. Normally, the top chunk's size is the heap's total allocated space minus the already allocated chunk sizes, bordering the end of the heap memory. However, with the overflow, we can now force malloc to return and thus overwrite arbitrary pointers in memory OUTSIDE of the heap's memory space. However, due to ASLR, we don't know where things outside of the heap memory are located, and thus we need another leak...
+We can see that our 7 byte overwrite affects the size of the top chunk in our program. Nice! This indicates we may be able to execute a [House Of Force](https://heap-exploitation.dhavalkapil.com/attacks/house_of_force) attack. Normally, the top chunk's size is the heap's total allocated space minus the already allocated chunk sizes, bordering the end of the heap memory. With the overflow, we can now force malloc to return and thus overwrite arbitrary pointers in memory OUTSIDE of the heap's memory space. However, due to ASLR, we don't know where things outside of the heap memory are located, and thus we need another leak...
 ### Format String:
 Okay to be honest, this is where I got stuck while the CTF was still running and I felt a little silly afterwards. Thanks to the person in discord who was able to give me a small hint that pushed me in the right direction. 
 Back in our `main` function, when we are prompted to pick a class, there is an `else` block in the conditional that auto assigns us the `Tank` class if our option does not match any of the acceptable options.
@@ -147,7 +147,7 @@ Then to determine our base address, we need to subtract `0x21c87`:
 Nice, we now have everything we need to write an exploit!
 
 ## Exploit:
-When doing research on House of Force, I found a [fantastic write-up](https://adamgold.github.io/posts/basic-heap-exploitation-house-of-force/) by Adam Force that explains a basic strategy to get RCE. The idea is to overwrite `__malloc_hook` , a function called before each malloc, with `system`, and pass it a pointer to `/bin/sh\0`. Therefore, our exploit will work as follows. 
+When doing research on House of Force, I found a [fantastic write-up](https://adamgold.github.io/posts/basic-heap-exploitation-house-of-force/) by Adam Gold that explains a basic strategy to get RCE. The idea is to overwrite `__malloc_hook` , a function called before each malloc, with `system`, and pass it a pointer to `/bin/sh\0`. Therefore, our exploit will work as follows. 
 1. Set our name to `/bin/sh\0`, which will be stored on the heap at an address we know through our leaks
 2. Trigger the format string vuln to leak libc base
 3. Choose menu option 5 to trigger the UAF vuln and then choose option 3 to leak the heap address
@@ -170,7 +170,7 @@ p.sendline('/bin/sh\0')
 ```
 
 ### Step Two:
-Next, we need to leak the libc address with the format string vulnerability. We can do so by waiting for the text prompt, sending `%13$p` as our class, and then parsing the address out of the recieved line. Lastly, we subtract `0x21c87` as described above and set `libc.address` accrdingly. `pwntools` now knows the base address of libc  and can load it's symbols accordingly.
+Next, we need to leak the libc address with the format string vulnerability. We can do so by waiting for the text prompt, sending `%13$p` as our class, and then parsing the address out of the received line. Lastly, we subtract `0x21c87` as described above and set `libc.address` accordingly. `pwntools` now knows the base address of libc and can load it's symbols at the proper addresses.
 
 ```python
 p.recvuntil(b'>> ')  
@@ -183,7 +183,7 @@ libc.address = libc_leak - 0x21c87
 ```
 
 ### Step 3: 
-Similar to the above step, we need to interact with the program to exploit the UAF bug and get our heap base address. We do so by sending `5` to delete our player's class, and then sending 3 to display our stats. We can parse the recieved line and grab the heap address. We know from our previous recon that the recieved address is the pointer to the previously allocated chunk at this point in the program, the heap layout will always be the same, so we can use a static offset to get back to the heap base.
+Similar to the above step, we need to interact with the program to exploit the UAF bug and get our heap base address. We do so by sending `5` to delete our player's class, and then sending `3` to display our stats. We can parse the received line and grab the leaked hex value, which we know from our previous recon will be the value of the previously allocated chunk. At this point in the program, the heap layout will always be the same, so we can use a static offset to get back to the heap base.
 
 ```python
 p.recvuntil(b'>> ')  
@@ -197,7 +197,7 @@ heap = int.from_bytes(heap, 'little') - 4800 - 0x10
 ```
 
 ### Step 4: 
-Now it's time to start the heap exploitation process. To make matters simplier, we can write a wrapper around the craft sword program interaction. 
+Now it's time to start the heap exploitation process. To make matters simpler, we can write a wrapper around the craft sword program interaction. 
 ```python
 def malloc(size, data):  
   p.recvuntil(b'>> ')  
@@ -208,7 +208,7 @@ def malloc(size, data):
   p.sendline(data)
 ```
 
-Now we need to corrupt the top chunk size. We can do this programatically the same way we did manually earlier:
+Now we need to corrupt the top chunk size. We can do this programmatically the same way we did manually earlier:
 
 ```python
 malloc(40, b'\x41'*47)
@@ -219,7 +219,7 @@ Next, we want to malloc all the way up to just before `__malloc_hook`. We can do
 
 ![heap mid exploit](heap_mid_exploit.png)
 
-Adding all the allocated sizes together, we get `0x250 + 0x1010 + 0x30 + 0x30 + 0x30 + 0x30 = 0x1320`. We also need to add an addtional `0x10` since we are using the heap base, which is `0x10` greater than the first address on the heap. Therefore we have the following code:
+Adding all the allocated sizes together, we get `0x250 + 0x1010 + 0x30 + 0x30 + 0x30 + 0x30 = 0x1320`. We also need to add an additional `0x10` since we are using the heap base, which is `0x10` before the first chunk on the heap. Therefore we have the following code:
 
 ```python
 distance = libc.sym.__malloc_hook - (heap + 0x1330) - 0x10  
@@ -235,7 +235,14 @@ malloc(24, p64(libc.sym.system))
 ```
 
 ### Step 6:
-Last step, we need to get a pointer to our name, `/bin/sh\0`. This is always located `0x1270` from the heap base. Now, instead of providing a size when crafting a sword, we will provide this pointer. Now instead of `__malloc_hook` running before the malloc takes place, `system("/bin/sh\0")` will run resulting in a shell
+Last step, we need to get a pointer to our name, `/bin/sh\0`. This is always located `0x1270` from the heap base. Instead of providing a size when crafting a sword, we will provide this pointer. Now instead of `__malloc_hook` running before the malloc takes place, `system("/bin/sh\0")` will run resulting in a shell.
+```python
+cmd = heap + 0x1270
+p.recvuntil(b'>> ')
+p.sendline(b'1')
+p.recvuntil(b'>> ')
+p.sendline(str(cmd))
+```
 
 ### Full Exploit Code:
 ```python
