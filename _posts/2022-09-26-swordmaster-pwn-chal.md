@@ -75,7 +75,7 @@ With Stack Canaries, NX, and PIE it's unlikely we will be able to exploit a stac
 
 ![version glibc](glibc_version_running.png)
 
-We can refer to the following chart for valid heap based attacks by version of glibc:
+We can refer to the following chart (source: https://hackmag.com/coding/htb-ropetwo-uaf/) for valid heap based attacks by version of glibc:
 
 ![glibc verison](glibc_version.png)
 
