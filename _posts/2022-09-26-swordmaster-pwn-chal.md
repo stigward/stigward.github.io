@@ -147,7 +147,7 @@ Then to determine our base address, we need to subtract `0x21c87`:
 Nice, we now have everything we need to write an exploit!
 
 ## Exploit:
-When doing research on House of Force, I found a [fantastic write-up](https://adamgold.github.io/posts/basic-heap-exploitation-house-of-force/) by Adam Gold that explains a basic strategy to get RCE. The idea is to overwrite `__malloc_hook` , a function called before each malloc, with `system`, and pass it a pointer to `/bin/sh\0`. Therefore, our exploit will work as follows. 
+When doing research on House of Force, I found a [fantastic write-up](https://adamgold.github.io/posts/basic-heap-exploitation-house-of-force/) by Adam Force that explains a basic strategy to get RCE. The idea is to overwrite `__malloc_hook`, a function called before each malloc, with `system`, and pass it a pointer to `/bin/sh\0`. Therefore, our exploit will work as follows. 
 1. Set our name to `/bin/sh\0`, which will be stored on the heap at an address we know through our leaks
 2. Trigger the format string vuln to leak libc base
 3. Choose menu option 5 to trigger the UAF vuln and then choose option 3 to leak the heap address
@@ -245,6 +245,8 @@ p.sendline(str(cmd))
 ```
 
 ### Full Exploit Code:
+The full exploit is included below. You can also view it on my [github](https://github.com/stigward/PoCs-and-Exploits/tree/main/CTFs/ROMHack2022/swordmaster).
+
 ```python
 from pwn import *  
 import sys  
