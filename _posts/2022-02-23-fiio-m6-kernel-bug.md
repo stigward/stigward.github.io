@@ -274,7 +274,7 @@ I have removed the logic from each of the switch statement cases, as they are no
 #define PROC_READ_DATA 7
 ```
 
-As such, any value that is not 1 through 7 (like say, `0x41` ) will evaluate to the default case, breaking from the `switch` and automatically returning. This causes our overflowed saved return pointer to be loaded into the PC and correspondingly crash.
+As such, any value that is not 0 through 7 (like say, `0x41` ) will evaluate to the default case, breaking from the `switch` and automatically returning. This causes our overflowed saved return pointer to be loaded into the PC and correspondingly crash.
 
 # Crash PoC:
 
