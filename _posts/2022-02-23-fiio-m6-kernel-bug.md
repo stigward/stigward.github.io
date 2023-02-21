@@ -25,7 +25,7 @@ get others started on the same path.
 The FiiO M6 has a kernel driver for its touchscreen. This driver creates an entry in the 
 `/proc` filesystem named `ftxxxx-debug` with global read and write permissions. 
 The function assigned to handle write operations suffers from a straight forward stack-based buffer overflow, 
-in which if a user can overflow the 128-byte buffer, resulting in a crash.
+in which a user can overflow the 128-byte buffer, resulting in a crash.
 
 # Initial Recon:
 ## Getting A Shell
