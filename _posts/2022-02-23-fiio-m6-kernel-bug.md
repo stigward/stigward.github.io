@@ -293,6 +293,8 @@ fn main() {
 
     print!("Writing {:?}\n", path);
     if let Ok(mut fd) = fd {
+        let fuzz_size = buf.len();
+        let _ = fd.write(&buf[..fuzz_size]);
     }
 }
 ```
