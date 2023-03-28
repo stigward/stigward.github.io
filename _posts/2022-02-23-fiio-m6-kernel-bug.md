@@ -1,5 +1,5 @@
 ---
-title: Using the "World's Worst Fuzzer" To Find A Kernel Bug In The FiiO M6
+title: Rooting the FiiO M6 - Part 1 - Using the "World's Worst Fuzzer" To Find A Kernel Bug
 author: stigward 
 date: 2023-02-19 11:33:00 +0800
 categories: [Vuln Research, Android]
