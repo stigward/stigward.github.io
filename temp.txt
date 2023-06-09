@@ -1,0 +1,5 @@
+rcx -> 5555
+rax -> 7fff
+push rax
+rax -> fffdb8`:q
+:`
