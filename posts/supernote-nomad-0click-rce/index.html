@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <title>Stig's Lab Notes | Uncovering a 0-Click RCE in the SuperNote Nomad E-ink Tablet</title>
+  <meta name="description" content="Chaining a vulnerability and misconfigurations into a remotely installable, 0-click rootkit on the SuperNote Nomad E-ink tablet (CVE-2025-32409).">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:title" content="Uncovering a 0-Click RCE in the SuperNote Nomad E-ink Tablet">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://stigward.github.io/posts/supernote-nomad-0click-rce/">
+  <meta property="og:description" content="Chaining a vulnerability and misconfigurations into a remotely installable, 0-click rootkit on the SuperNote Nomad E-ink tablet (CVE-2025-32409).">
+  <meta property="og:site_name" content="Stig's Lab Notes">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:url" content="https://stigward.github.io/posts/supernote-nomad-0click-rce/">
+  <meta name="twitter:title" content="Uncovering a 0-Click RCE in the SuperNote Nomad E-ink Tablet">
+  <meta name="twitter:description" content="Chaining a vulnerability and misconfigurations into a remotely installable, 0-click rootkit on the SuperNote Nomad E-ink tablet (CVE-2025-32409).">
+
+  
+    <meta property="og:image" content="https://stigward.github.io/assets/og-image-ee46bbc61b334e821e81534b1fd43f3fee6f020ec174b3c2114445695fd48c01.jpg">
+    <meta name="twitter:image" content="https://stigward.github.io/assets/og-image-ee46bbc61b334e821e81534b1fd43f3fee6f020ec174b3c2114445695fd48c01.jpg">
+  
+
+  <link href="https://stigward.github.io/feed.xml" type="application/rss+xml" rel="alternate" title="Stig's Lab Notes Last 10 blog posts" />
+
+  
+
+  
+
+    
+      <link rel="icon" type="image/x-icon" href="/assets/favicon-dark-11327753546b2135c989eee5cd83497a2734b702928d016839d795f6c706e3d5.ico">
+      <link rel="apple-touch-icon" href="/assets/apple-touch-icon-dark-d161409442b7e523089f24d08d0a55951549ece7504207c376d53b020713494d.png">
+      <link rel="stylesheet" type="text/css" href="/assets/dark-c3423cb8f8dc5b46f03bebdb004bc5d65fb395e4743a83975c4a75e75300a1ca.css" integrity="sha256-w0I8uPjcW0bwO+vbAEvF1l+zleR0OoOXXEp151MAoco=" crossorigin="anonymous">
+    
+
+  
+
+</head>
+
+<body>
+  <main>
+    <div class="grid grid-centered">
+      <div class="grid-cell">
+        <nav class="header-nav scrollappear">
+  <a href="/" class="header-logo" title="Stig's Lab Notes">Stig's Lab Notes</a>
+  <ul class="header-links">
+    
+      <li>
+        <a href="/about" title="About me">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-about">
+  <use href="/assets/about-ecf154b571ab8034ae00aeed91a3b7ad68db80b46d958753ad6216c919486e88.svg#icon-about" xlink:href="/assets/about-ecf154b571ab8034ae00aeed91a3b7ad68db80b46d958753ad6216c919486e88.svg#icon-about"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+      <li>
+        <a href="https://twitter.com/_stigward" rel="noreferrer noopener" target="_blank" title="Twitter">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-twitter">
+  <use href="/assets/twitter-8842c33965263ad1b03a978406826677a668f94125d5837e70ab83f24b3213a7.svg#icon-twitter" xlink:href="/assets/twitter-8842c33965263ad1b03a978406826677a668f94125d5837e70ab83f24b3213a7.svg#icon-twitter"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+    
+    
+      <li>
+        <a href="https://github.com/stigward" rel="noreferrer noopener" target="_blank" title="GitHub">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-github">
+  <use href="/assets/github-094f81040819f34343ee6ffff0980f17e2807b08b595eaaf66ae3554934fd78d.svg#icon-github" xlink:href="/assets/github-094f81040819f34343ee6ffff0980f17e2807b08b595eaaf66ae3554934fd78d.svg#icon-github"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+      <li>
+        <a href="mailto:stigward.research@gmail.com" title="Email">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-email">
+  <use href="/assets/email-782473193bf750036fdb90e8daa075508a20509d01854c09f3237c144a3f0601.svg#icon-email" xlink:href="/assets/email-782473193bf750036fdb90e8daa075508a20509d01854c09f3237c144a3f0601.svg#icon-email"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+      <li>
+        <a href="/feed.xml" rel="noreferrer noopener" target="_blank" title="RSS">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-rss">
+  <use href="/assets/rss-541ec5cea9cefd10d2fcfec01888f3f231a8829940249835fa7b7b3a12ae0d0d.svg#icon-rss" xlink:href="/assets/rss-541ec5cea9cefd10d2fcfec01888f3f231a8829940249835fa7b7b3a12ae0d0d.svg#icon-rss"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+  </ul>
+</nav>
+
+
+
+        <article class="article scrollappear">
+          <header class="article-header">
+            <h1>Uncovering a 0-Click RCE in the SuperNote Nomad E-ink Tablet</h1>
+            <p>Chaining a vulnerability and misconfigurations into a remotely installable, 0-click rootkit on the SuperNote Nomad E-ink tablet (CVE-2025-32409).</p>
+            <div class="article-list-footer">
+  <span class="article-list-date">
+    April 6, 2025
+  </span>
+  <span class="article-list-divider">-</span>
+  <span class="article-list-minutes">
+    
+    
+      9 minute read
+    
+  </span>
+  <span class="article-list-divider">-</span>
+  <div class="article-list-tags">
+    
+      
+      <a href="/tag/android" title="See all posts with tag 'Android'">Android</a>
+    
+      
+      <a href="/tag/research" title="See all posts with tag 'Research'">Research</a>
+    
+      
+      <a href="/tag/rce" title="See all posts with tag 'RCE'">RCE</a>
+    
+  </div>
+</div>
+          </header>
+
+          <div class="article-content">
+            <p><strong>Original research published on a company blog <a href="https://www.prizmlabs.io/post/remote-rootkits-uncovering-a-0-click-rce-in-the-supernote-nomad-e-ink-tablet">here</a></strong></p>
+<h2 id="overview">Overview:</h2>
+
+<p>Last year, popular E-Ink tablet vendor <a href="https://supernote.com/?srsltid=AfmBOorepWN3BO2e0u-Dt06zM5pFb1_2q-cAltdVxHU2wKIon0WtcJ0C">Ratta Software</a> released the <a href="https://supernote.com/products/supernote-nomad?srsltid=AfmBOop-tkBYaFOtxlwRqT74E3lyC5aV5tvKEzPdwuGEqww6UhyOrBk-">SuperNote A6 X2 Nomad</a> - a 7.8 inch tablet running Android 11 under the hood.</p>
+
+<p>As productivity nerds, we picked one up in July of 2024 with the goal of using it for its intended purpose: note taking and academic paper reading. However, as hackers at heart, it took all of 24-hours before we abandoned that idea entirely and decided to poke at it.</p>
+
+<p>What follows is a blog post detailing how we were able to chain a vulnerability and a handful of misconfigurations into a remotely installable, 0-click rootkit. A malicious attacker on the same network as the victim could fully compromise the target device without any user-interaction. EDIT: This issue was assigned to <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-32409">CVE-2025-32409</a> after publication.</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_97196ebf509f4c55b79dc58becb3cb8a~mv2.jpg/v1/fill/w_740,h_365,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_97196ebf509f4c55b79dc58becb3cb8a~mv2.jpg" alt="" /></p>
+<h2 id="recon">Recon:</h2>
+<p>This research kicked off with an innocent Nmap scan, just to see if anything interesting was listening on the device while in its default configuration. Lo and behold, there was one result which stood out:</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_dad176ba78834c66a13db5c0bd162004~mv2.png/v1/fill/w_740,h_114,al_c,lg_1,q_85,enc_avif,quality_auto/82b748_dad176ba78834c66a13db5c0bd162004~mv2.png" alt="" /></p>
+
+<p>As shown above, we found port 60002 open and listening. Nmap was unable to identify the service directly, so we decided to investigate this mysterious port a bit further by grabbing a firmware image for the device from Ratta Software’s <a href="https://support.supernote.com/en_US/change-log/how-to-update-your-supernote">“Updates” page</a>.</p>
+
+<p>The firmware was unencrypted, and we were able to mount the various filesystem images and grep through them for anything related to that port number.
+This led us to the <em>SuperNoteLauncher.apk</em>, which we threw into <a href="https://github.com/skylot/jadx">jadx</a> and started reversing.</p>
+<h3 id="reversing-the-supernotelauncher">Reversing The SuperNoteLauncher</h3>
+<h4 id="locating-the-port">Locating The Port:</h4>
+<p>After opening the apk in jadx, we first searched for where that port number was specifically being referenced. As shown below, this led us to a <em>static final int</em> named <em>COMMAND_RECEIVE_FILE_PORT</em>.</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_deaef05a4efa48bfbb82745ae6f2df98~mv2.png/v1/fill/w_740,h_329,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_deaef05a4efa48bfbb82745ae6f2df98~mv2.png" alt="" /></p>
+
+<p>Looking for cross-references, we eventually tracked down where it was being used: <em>com.ratta.supernote.wifip2p.receive</em>.</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_6d7076b80bce459f8f521d9bdb05b8f4~mv2.jpg/v1/fill/w_740,h_354,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_6d7076b80bce459f8f521d9bdb05b8f4~mv2.jpg" alt="" /></p>
+<h4 id="identifying-the-service">Identifying The Service:</h4>
+<p>At this point, our goal was to better understand the service running on 60002. We can see in the below screenshot that when the port is open, a handful of functions are triggered after something is received over the <em>ServerSocket</em>. Specifically, the code of interest resides in the <em>DeviceThread</em> class.</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_ff6953aac3e54d6c9f3e02c17b97f28d~mv2.jpg/v1/fill/w_740,h_117,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_ff6953aac3e54d6c9f3e02c17b97f28d~mv2.jpg" alt="" /></p>
+
+<p><em>DeviceThread</em> implements <em>Runnable</em> and its r_un()_ function is a behemoth. That said, a quick glance at it indicates that we are likely dealing with a custom HTTP server based on the way error messages are communicated back to the client.</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_a3884e1f5c384c49aae32ce809b22da7~mv2.jpg/v1/fill/w_740,h_257,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_a3884e1f5c384c49aae32ce809b22da7~mv2.jpg" alt="" /></p>
+
+<p>The first line of <em>run()</em> passes the socket over to <em>getDeviceName()</em>.</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_bc4db5d9fa99471d909a0dc3e5bf29e4~mv2.png/v1/fill/w_740,h_119,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_bc4db5d9fa99471d909a0dc3e5bf29e4~mv2.png" alt="" /></p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_a3fd6042d0db4b498f707a502678a967~mv2.png/v1/fill/w_740,h_490,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_a3fd6042d0db4b498f707a502678a967~mv2.png" alt="" /></p>
+
+<p>Those of you with a keen eye can probably tell what this is code is doing: parsing out custom headers that our HTTP server expects. This puts into context quite a bit of the strange behavior observed inside <em>run()</em> - different operations are being triggered based on what custom headers are passed from the client.</p>
+
+<p>For example, we can trigger a 501 error code by providing a <em>version</em> header greater than 1</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_f1c608431cc141f29e6c473cd4bb326f~mv2.png/v1/fill/w_740,h_257,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_f1c608431cc141f29e6c473cd4bb326f~mv2.png" alt="" /></p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_b86a2d869c0649348639bbb4fd11bfce~mv2.png/v1/fill/w_740,h_150,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_b86a2d869c0649348639bbb4fd11bfce~mv2.png" alt="" /></p>
+
+<p>And, when we send the request, we actually get a pop-up error saying that the SuperNote device is not on the latest version</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_2a0a89b77b4241ed92905a46aabeec5b~mv2.jpg/v1/fill/w_350,h_465,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_2a0a89b77b4241ed92905a46aabeec5b~mv2.jpg" alt="" /></p>
+<h3 id="file-uploading">File Uploading</h3>
+<p>All of this is interesting, but what piqued our interest most was the class names: <em>RecieverManager</em> and <em>WiFiP2PService</em>. Unauthenticated device-to-device file sharing sounds like a potentially great attack surface.</p>
+
+<p>Given that we at-least know how to interact with the server, at this point we went ahead and mocked up a python client that just sends a POST request with an attached file and all the necessary headers…andddd the file showed up on the device in the INBOX directory!
+<img src="https://static.wixstatic.com/media/82b748_04d4622d0d594985b6a1653c54feb1a4~mv2.png/v1/fill/w_740,h_418,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_04d4622d0d594985b6a1653c54feb1a4~mv2.png" alt="" /></p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_7bc40303171c4df2acfaeafa61cc6664~mv2.jpg/v1/fill/w_740,h_702,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_7bc40303171c4df2acfaeafa61cc6664~mv2.jpg" alt="" /></p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_f8bbae3bde50411299f6479d791c2266~mv2.jpg/v1/fill/w_740,h_557,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_f8bbae3bde50411299f6479d791c2266~mv2.jpg" alt="" /></p>
+<h2 id="investigating-a-path-traversal">Investigating A Path Traversal:</h2>
+<p>After figuring out how to get files into the INBOX directory, we did what all good security researchers would do: added some “dot-dot-slashes” to our payload to see what would happen. Specifically, the Nomad has a directory named EXPORT at the same level as INBOX. This EXPORT directory is accessible in the UI, allowing us to quickly verify if the payload worked. Our new headers dict includes the path traversal payload, like so:</p>
+
+<p>headers = {“version”: “1”, “content-length”: “1234”, “name”: “../../../../../../../../sdcard/EXPORT/testfile.txt”, “devicename”: “testdevice”} And what do you know? It worked!</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_b1aab90cb7b14c48872987d985234a37~mv2.jpg/v1/fill/w_740,h_656,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_b1aab90cb7b14c48872987d985234a37~mv2.jpg" alt="" /></p>
+
+<p>However, see that pesky “<em>(1)”</em> appended to the end of our filename? Yeah, that is going to prove to be quite the problem during exploitation here in a second.</p>
+<h3 id="exploit-plan">Exploit Plan:</h3>
+<p>Up until now, we haven’t been entirely honest. Going into this, we had a little bit of an idea as to what an exploit <em>might</em> look like if we were able to find an arbitrary file write. This idea stemmed from 3 critical pieces of information we came across during our recon.</p>
+
+<ol>
+  <li>SuperNote’s instruction on the Firmware Update page specifically ask you to put the downloaded zip file into the EXPORT directory</li>
+  <li>A manual firmware update will automatically start after a hotplug event or reboot if a valid update image is found in the EXPORT directory</li>
+  <li>A researcher <a href="https://github.com/TA1312/supernote-a5x">poked at the previous generation of SuperNote devices</a> and found that firmware images were signed with publicly available debug keys and the bootloader was unlocked by default…nice. We confirmed that while the keys had been renamed on the newer devices, they were still the same.</li>
+</ol>
+
+<p>Therefore, we figured we could do the following:</p>
+
+<ol>
+  <li>Create a backdoored firmware image and sign it with the publicly available debug keys</li>
+  <li>Use the arbitrary write to get the download directly into the “EXPORT” directory</li>
+  <li>An update would automatically be initiated during normal device usage, installing our malicious rootkit.</li>
+</ol>
+
+<p>This was all good in theory, only there was one major problem</p>
+<h3 id="the-problem">The Problem</h3>
+<p>Remember that “<em>(1)</em>” appended to our filename? Yeah, here is where it comes back to bite us. You see, the service that scans for the update in the EXPORT directory has the following code:</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_61fcdb7519074a7d87bb0e9652edf8c8~mv2.jpg/v1/fill/w_740,h_117,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_61fcdb7519074a7d87bb0e9652edf8c8~mv2.jpg" alt="" /></p>
+
+<p>The filename has to be exactly <em>update.zip</em>…not <em>update(1).zip</em>. So we need to figure out <em>why</em> the extra number gets appended to our path traversal payload and how we can get rid of it.</p>
+<h4 id="why-does-the-filename-change">Why Does The Filename Change?</h4>
+<p>After a bit more reverse engineering of the launcher apk, we finally determined the root cause of the issue. While it would be too much code to include via screenshots here, the high-level file reception logic is as follows:</p>
+
+<ol>
+  <li>The server first creates a file in its application directory under the “<em>/_receiver__file_cache/file_name</em>” path</li>
+  <li>It then copies the incoming stream of data into that newly created file in “receiver__file_cache/file_name_” path</li>
+  <li>When it has reached the end of the incoming stream of data, it then creates a new file, named <code class="highlighter-rouge">INBOX/file_name</code></li>
+  <li>It copies the contents from “receiver__file_cache/file_name”_ over to “<em>INBOX/file_name”</em></li>
+  <li>Finally, it deletes the cached file.</li>
+</ol>
+
+<p>The problem arises due to the continued use of the attacker supplied filename for <em>all</em> operations. So for our original attack plan, what ACTUALLY ends up happening on the device is:</p>
+
+<ol>
+  <li>The server receives and creates the “<em>/_receiver__file_cache/../../../../sdcard/EXPORT/update.zip</em>” file, thinking this should be the cache file</li>
+  <li>Then after it has finished receiving the data, it goes to create the INBOX file, but actually attempts to create “<em>/INBOX/../../../../sdcard/EXPORT/update.zip</em>” again</li>
+</ol>
+
+<p>Before each file creation event, the following code is run:</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_030c9ba864324cf38bb456dd16f18c2d~mv2.png/v1/fill/w_740,h_354,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_030c9ba864324cf38bb456dd16f18c2d~mv2.png" alt="" /></p>
+
+<p>As shown, if the name already exists where a new file is to be written, then a “1” (or the next subsequent number) is added to the file name. So instead of creating “<em>/EXPORT/update.zip</em>”, the 2nd file creation event creates “<em>EXPORT/update(1).zip</em>”. Then the remaining steps of the process take place: the file contents are copied over, and the the original file (“<em>/EXPORT/update.zip</em>”) is deleted, leaving us only with the renamed one.</p>
+
+<h2 id="finding-a-naming-issue-bypass-via-a-race-condition">Finding A Naming Issue Bypass Via A “Race Condition”</h2>
+
+<p>So given our current strategy, we are stuck. We need to figure out how to get our actual update file into EXPORT with the right name. At this point, we spent a lot of time trying to find an actual naming bypass, which naturally didn’t work. What <em>did</em> end up working was taking advantage of a logical “race condition”…technically it’s not <em>actually</em> a vulnerability or a traditional race condition, but we can leverage it to our advantage.</p>
+
+<p>You see, a legitimate update file is 1.1GB large. That means, it takes quite a bit of time to transfer. Three other factors also play to our advantage:</p>
+
+<ol>
+  <li>The file is first created, and then the stream is written byte-by-byte into it.</li>
+  <li>Once the transfer completes, the second file is created, and then the copy starts.</li>
+  <li>The server is multi-threaded, meaning it can receive multiple files at the same time</li>
+</ol>
+
+<p>We can use these three facts to modify our exploit a bit.</p>
+<h3 id="revised-exploit-strategy">Revised Exploit Strategy:</h3>
+<p>Using our understanding of the server logic under the hood, we can use the following trick to satisfy our naming requirements.</p>
+<ol>
+  <li>Create a very small, dummy file named <code class="highlighter-rouge">update.zip</code></li>
+  <li>Create a legitimate <code class="highlighter-rouge">update.zip</code> file that contains our malicious backdoor, signed with the publicly available development keys</li>
+  <li>Send the the very small, dummy file first</li>
+  <li>Send the legitimate <code class="highlighter-rouge">update.zip</code> file immediately after.</li>
+</ol>
+
+<p>Anddd if we do that, the following happens on device (Note - thread one is <em>italicized</em> and thread two is <strong>bold</strong>):</p>
+
+<ol>
+  <li><em><code class="highlighter-rouge">EXPORT/update.zip</code> is created by the dummy file during the caching / initial reception step</em></li>
+  <li><strong><code class="highlighter-rouge">EXPORT/update(1).zip</code> is created by the real update during the caching / initial reception step</strong></li>
+  <li><em><code class="highlighter-rouge">EXPORT/update(2).zip</code> is created by the dummy file during the copy step</em></li>
+  <li><em><code class="highlighter-rouge">EXPORT/update.zip</code> is deleted by the dummy file after completion of the copy step</em></li>
+  <li><strong><code class="highlighter-rouge">EXPORT/update.zip</code> is created by the real update during copy step</strong></li>
+  <li><strong><code class="highlighter-rouge">EXPORT/update(1).zip</code> is deleted by the real update after completion of copy step</strong>
+Because our dummy file is so much smaller than the real update file, it completes the caching, copy, and delete steps before the valid update is done being recieved. This leaves the <em>EXPORT/update.zip</em> name available when the copy step begins for the valid update.</li>
+</ol>
+
+<p>So, after our exploit runs, we are left with a properly named malicious update image. We also have the “<em>EXPORT/update(2).zip”</em> artifact left over from our dummy file’s copy operation, but we don’t care about it. If we want to do clean-up, that could be performed after the rootkit is installed.</p>
+<h2 id="backdooring-the-firmware-image">Backdooring The Firmware Image</h2>
+<p>We won’t go too in-depth on this step, but we found the development keys needed after a bit of Googling around. From there, we created a backdoor using <a href="https://github.com/ng-dst/flashable-android-rootkit">flashable-android-rootkit</a> and writing simple C reverse shell payload. To re-package the firmware, we followed the recommended method from the <a href="https://github.com/TA1312/supernote-a5x?tab=readme-ov-file#build-and-sign-your-own-updatezip">previous research</a> and used <a href="https://forum.xda-developers.com/t/kitchen-windows-multi-image-kitchen-repack-android-partitions.4326387/">Multi Image Kitchen</a> (Note: Finding the right JDK version to get Multi Image Kitchen working was one of the harder parts of this exploit).</p>
+<h2 id="putting-it-all-together">Putting It All Together</h2>
+<p>Once the payload is in position, it will be auto-installed during normal operations of the device. The installer checks the EXPORT directory during hotplug events (usb-c in or out of the device) or during a reboot. Therefore, all you have to do is sit back, wait, and hope the user doesn’t find the potentially suspicious update.zip file in EXPORT. Note that after a hotplug event, the user DOES get a prompt about an update. However, it is an opt-OUT prompt, meaning the update will install in 30 seconds unless “abort” is clicked. If all goes according to plan, you get the following:</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_0b427783183149029b4d36bbf134e381~mv2.jpeg/v1/fill/w_740,h_346,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_0b427783183149029b4d36bbf134e381~mv2.jpeg" alt="" /></p>
+
+<h2 id="disclosure-timeline">Disclosure Timeline:</h2>
+<ul>
+  <li><strong>July 26, 2024</strong> - PRIZM reaches out to Ratta Software’s service team</li>
+  <li><strong>August 15th, 2024</strong> - PRIZM follows up with Ratta Software</li>
+  <li><strong>September 23rd, 2024</strong> - PRIZM follows up with Ratta Software again, notifying them of plans to publicly disclose the vulnerability at the 90 day disclosure deadline (Oct 23rd)</li>
+  <li><strong>September 30th, 2024</strong> - PRIZM loops in Ratta software’s “feedback” team in an effort to get a response.</li>
+  <li><strong>October 2nd, 2024</strong> - Ratta Software responds, mentioning staff changes had caused the disclosure to slip through the cracks. Team asks for additional information to pass to their head of engineering.</li>
+  <li><strong>October 3rd, 2024</strong> - PRIZM provides a 7 page technical report, including full exploit code for local reproduction</li>
+  <li><strong>October 15th, 2024</strong> - PRIZM follows up to ensure the technical details have been recieved and remind of the upcoming 90 day deadline the following week.</li>
+  <li><strong>October 16th, 2024</strong> - SuperNote responds and mentions they plan to address the issues in the December update.</li>
+  <li><strong>October 16th, 2024</strong> - PRIZM replies and agrees to hold off on any disclosure until December 2024.</li>
+  <li><strong>EDIT: April 8th, 2025 -</strong> <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-30257">CVE-2025-32409</a> was assigned.</li>
+</ul>
+
+          </div>
+          <div class="article-share">
+            
+            
+            <a href="https://twitter.com/home?status=Uncovering+a+0-Click+RCE+in+the+SuperNote+Nomad+E-ink+Tablet%20-%20https://stigward.github.io/posts/supernote-nomad-0click-rce/%20by%20@_stigward" title="Share on Twitter" rel="noreferrer noopener" target="_blank">
+              <svg viewBox="0 0 512 512"><path d="M492 109.5c-17.4 7.7-36 12.9-55.6 15.3 20-12 35.4-31 42.6-53.6 -18.7 11.1-39.4 19.2-61.5 23.5C399.8 75.8 374.6 64 346.8 64c-53.5 0-96.8 43.4-96.8 96.9 0 7.6 0.8 15 2.5 22.1 -80.5-4-151.9-42.6-199.6-101.3 -8.3 14.3-13.1 31-13.1 48.7 0 33.6 17.2 63.3 43.2 80.7C67 210.7 52 206.3 39 199c0 0.4 0 0.8 0 1.2 0 47 33.4 86.1 77.7 95 -8.1 2.2-16.7 3.4-25.5 3.4 -6.2 0-12.3-0.6-18.2-1.8 12.3 38.5 48.1 66.5 90.5 67.3 -33.1 26-74.9 41.5-120.3 41.5 -7.8 0-15.5-0.5-23.1-1.4C62.8 432 113.7 448 168.3 448 346.6 448 444 300.3 444 172.2c0-4.2-0.1-8.4-0.3-12.5C462.6 146 479 129 492 109.5z"/></svg>
+            </a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u=https://stigward.github.io/posts/supernote-nomad-0click-rce/" title="Share on Facebook" rel="noreferrer noopener" target="_blank">
+              <svg viewBox="0 0 512 512"><path d="M288 192v-38.1c0-17.2 3.8-25.9 30.5-25.9H352V64h-55.9c-68.5 0-91.1 31.4-91.1 85.3V192h-45v64h45v192h83V256h56.4l7.6-64H288z"/></svg>
+            </a>
+          </div>
+
+          
+        </article>
+        <footer class="footer scrollappear">
+  <p>
+    &copy; 2026 Stig's Lab Notes.
+    Built with <a href="https://github.com/nielsenramon/chalk" rel="noreferrer noopener" target="_blank" title="Chalk theme for Jekyll">Chalk</a>.
+  </p>
+</footer>
+
+      </div>
+    </div>
+  </main>
+  
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-QK87P1LVPH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-QK87P1LVPH');
+  </script>
+
+
+<script type="text/javascript" src="/assets/vendor-bcef26dde016217d3eab202f42759aae5d17330fdb76331068f6269a84d8437f.js" integrity="sha256-vO8m3eAWIX0+qyAvQnWarl0XMw/bdjMQaPYmmoTYQ38=" crossorigin="anonymous"></script>
+
+
+  <script type="text/javascript" src="/assets/webfonts-cd7eae67265bcd101d0f598456b16171b2533d714dcc3a5b6ddacfdf234c4cbc.js" integrity="sha256-zX6uZyZbzRAdD1mEVrFhcbJTPXFNzDpbbdrP3yNMTLw=" crossorigin="anonymous"></script>
+
+
+
+  <script type="text/javascript" src="/assets/scrollappear-7691f37e9154c7d53f7515a518dbb0faf3a73d9b3d5b75522867a134952d0a76.js" integrity="sha256-dpHzfpFUx9U/dRWlGNuw+vOnPZs9W3VSKGehNJUtCnY=" crossorigin="anonymous"></script>
+
+
+<script type="text/javascript" src="/assets/application-7b6260deb98e64a8a42b97f5c18ad2a8c9507d70f9a097a440b354770f979dc7.js" integrity="sha256-e2Jg3rmOZKikK5f1wYrSqMlQfXD5oJekQLNUdw+Xncc=" crossorigin="anonymous"></script>
+
+
+</body>
+</html>

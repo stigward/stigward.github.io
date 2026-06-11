@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="https://www.w3.org/2005/Atom" xmlns:dc="https://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Stig's Lab Notes</title>
+    <description>A blog focused on vulnerability research, exploit development and general security topics.</description>
+    <link>https://stigward.github.io</link>
+    <atom:link href="https://stigward.github.io/feed.xml" rel="self" type="application/rss+xml" />
+    
+      <item>
+        <title>A Silly Satellite Wi-Fi Router Bug - Redport Pre-Auth RCE</title>
+        <description>Pre-auth RCE over LAN in the RedPort wXa-223 satellite Wi-Fi router, found within minutes of unpacking the firmware.</description>
+        <pubDate>Thu, 24 Jul 2025 00:00:00 -0600</pubDate>
+        <link>https://stigward.github.io/posts/redport-satellite-preauth-rce/</link>
+        <guid isPermaLink="true">https://stigward.github.io/posts/redport-satellite-preauth-rce/</guid>
+      </item>
+    
+      <item>
+        <title>AI-Driven Binary Analysis on a TOTOLINK Router - Shooting Bugs-In-A-Barrel</title>
+        <description>Using PRIZM ZERO's AI-driven binary analysis to reproduce known CVEs and find new memory-corruption bugs in a TOTOLINK router's cstecgi.cgi.</description>
+        <pubDate>Wed, 18 Jun 2025 00:00:00 -0600</pubDate>
+        <link>https://stigward.github.io/posts/totolink-ai-binary-analysis/</link>
+        <guid isPermaLink="true">https://stigward.github.io/posts/totolink-ai-binary-analysis/</guid>
+      </item>
+    
+      <item>
+        <title>Uncovering a 0-Click RCE in the SuperNote Nomad E-ink Tablet</title>
+        <description>Chaining a vulnerability and misconfigurations into a remotely installable, 0-click rootkit on the SuperNote Nomad E-ink tablet (CVE-2025-32409).</description>
+        <pubDate>Sun, 06 Apr 2025 00:00:00 -0600</pubDate>
+        <link>https://stigward.github.io/posts/supernote-nomad-0click-rce/</link>
+        <guid isPermaLink="true">https://stigward.github.io/posts/supernote-nomad-0click-rce/</guid>
+      </item>
+    
+      <item>
+        <title>Rooting the FiiO M6 - Part 2 - Writing an LPE Exploit For Our Overflow Bug</title>
+        <description>Turning the FiiO M6 kernel stack overflow into a working local privilege escalation exploit.</description>
+        <pubDate>Mon, 27 Mar 2023 21:33:00 -0600</pubDate>
+        <link>https://stigward.github.io/posts/fiio-m6-exploit/</link>
+        <guid isPermaLink="true">https://stigward.github.io/posts/fiio-m6-exploit/</guid>
+      </item>
+    
+      <item>
+        <title>Rooting the FiiO M6 - Part 1 - Using the &quot;World's Worst Fuzzer&quot; To Find A Kernel Bug</title>
+        <description>Using the world's worst fuzzer to find a kernel stack overflow in the FiiO M6's procfs debug interface.</description>
+        <pubDate>Sat, 18 Feb 2023 20:33:00 -0700</pubDate>
+        <link>https://stigward.github.io/posts/fiio-m6-kernel-bug/</link>
+        <guid isPermaLink="true">https://stigward.github.io/posts/fiio-m6-kernel-bug/</guid>
+      </item>
+    
+      <item>
+        <title>UAF and House Of Force Fun - ROMHack CTF Swordmaster Pwn Challenge</title>
+        <description>A format string leak, a UAF heap leak, and a House of Force attack to pop a shell in the ROMHack CTF Swordmaster pwn challenge.</description>
+        <pubDate>Sun, 25 Sep 2022 21:33:00 -0600</pubDate>
+        <link>https://stigward.github.io/posts/swordmaster-pwn-chal/</link>
+        <guid isPermaLink="true">https://stigward.github.io/posts/swordmaster-pwn-chal/</guid>
+      </item>
+    
+      <item>
+        <title>Wavlink Command Injection - CVE-2022-23900</title>
+        <description>An unauthenticated command injection in the Wavlink WL-WN531P3 router API, exploitable from the internet via CSRF.</description>
+        <pubDate>Tue, 05 Apr 2022 21:33:00 -0600</pubDate>
+        <link>https://stigward.github.io/posts/wavlink-command-injection/</link>
+        <guid isPermaLink="true">https://stigward.github.io/posts/wavlink-command-injection/</guid>
+      </item>
+    
+      <item>
+        <title>JWT Confusion and SSTI - CyberSanta CTF Naughty or Nice Web Challenge</title>
+        <description>Exploiting a JWT verification flaw and an SSTI vulnerability to get RCE in the CyberSanta CTF Naughty or Nice web challenge.</description>
+        <pubDate>Thu, 09 Dec 2021 20:33:00 -0700</pubDate>
+        <link>https://stigward.github.io/posts/naughty-or-nice-web-chal/</link>
+        <guid isPermaLink="true">https://stigward.github.io/posts/naughty-or-nice-web-chal/</guid>
+      </item>
+    
+  </channel>
+</rss>

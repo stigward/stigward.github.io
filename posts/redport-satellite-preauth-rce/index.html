@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <title>Stig's Lab Notes | A Silly Satellite Wi-Fi Router Bug - Redport Pre-Auth RCE</title>
+  <meta name="description" content="Pre-auth RCE over LAN in the RedPort wXa-223 satellite Wi-Fi router, found within minutes of unpacking the firmware.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:title" content="A Silly Satellite Wi-Fi Router Bug - Redport Pre-Auth RCE">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://stigward.github.io/posts/redport-satellite-preauth-rce/">
+  <meta property="og:description" content="Pre-auth RCE over LAN in the RedPort wXa-223 satellite Wi-Fi router, found within minutes of unpacking the firmware.">
+  <meta property="og:site_name" content="Stig's Lab Notes">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:url" content="https://stigward.github.io/posts/redport-satellite-preauth-rce/">
+  <meta name="twitter:title" content="A Silly Satellite Wi-Fi Router Bug - Redport Pre-Auth RCE">
+  <meta name="twitter:description" content="Pre-auth RCE over LAN in the RedPort wXa-223 satellite Wi-Fi router, found within minutes of unpacking the firmware.">
+
+  
+    <meta property="og:image" content="https://stigward.github.io/assets/og-image-ee46bbc61b334e821e81534b1fd43f3fee6f020ec174b3c2114445695fd48c01.jpg">
+    <meta name="twitter:image" content="https://stigward.github.io/assets/og-image-ee46bbc61b334e821e81534b1fd43f3fee6f020ec174b3c2114445695fd48c01.jpg">
+  
+
+  <link href="https://stigward.github.io/feed.xml" type="application/rss+xml" rel="alternate" title="Stig's Lab Notes Last 10 blog posts" />
+
+  
+
+  
+
+    
+      <link rel="icon" type="image/x-icon" href="/assets/favicon-dark-11327753546b2135c989eee5cd83497a2734b702928d016839d795f6c706e3d5.ico">
+      <link rel="apple-touch-icon" href="/assets/apple-touch-icon-dark-d161409442b7e523089f24d08d0a55951549ece7504207c376d53b020713494d.png">
+      <link rel="stylesheet" type="text/css" href="/assets/dark-c3423cb8f8dc5b46f03bebdb004bc5d65fb395e4743a83975c4a75e75300a1ca.css" integrity="sha256-w0I8uPjcW0bwO+vbAEvF1l+zleR0OoOXXEp151MAoco=" crossorigin="anonymous">
+    
+
+  
+
+</head>
+
+<body>
+  <main>
+    <div class="grid grid-centered">
+      <div class="grid-cell">
+        <nav class="header-nav scrollappear">
+  <a href="/" class="header-logo" title="Stig's Lab Notes">Stig's Lab Notes</a>
+  <ul class="header-links">
+    
+      <li>
+        <a href="/about" title="About me">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-about">
+  <use href="/assets/about-ecf154b571ab8034ae00aeed91a3b7ad68db80b46d958753ad6216c919486e88.svg#icon-about" xlink:href="/assets/about-ecf154b571ab8034ae00aeed91a3b7ad68db80b46d958753ad6216c919486e88.svg#icon-about"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+      <li>
+        <a href="https://twitter.com/_stigward" rel="noreferrer noopener" target="_blank" title="Twitter">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-twitter">
+  <use href="/assets/twitter-8842c33965263ad1b03a978406826677a668f94125d5837e70ab83f24b3213a7.svg#icon-twitter" xlink:href="/assets/twitter-8842c33965263ad1b03a978406826677a668f94125d5837e70ab83f24b3213a7.svg#icon-twitter"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+    
+    
+      <li>
+        <a href="https://github.com/stigward" rel="noreferrer noopener" target="_blank" title="GitHub">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-github">
+  <use href="/assets/github-094f81040819f34343ee6ffff0980f17e2807b08b595eaaf66ae3554934fd78d.svg#icon-github" xlink:href="/assets/github-094f81040819f34343ee6ffff0980f17e2807b08b595eaaf66ae3554934fd78d.svg#icon-github"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+      <li>
+        <a href="mailto:stigward.research@gmail.com" title="Email">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-email">
+  <use href="/assets/email-782473193bf750036fdb90e8daa075508a20509d01854c09f3237c144a3f0601.svg#icon-email" xlink:href="/assets/email-782473193bf750036fdb90e8daa075508a20509d01854c09f3237c144a3f0601.svg#icon-email"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+      <li>
+        <a href="/feed.xml" rel="noreferrer noopener" target="_blank" title="RSS">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-rss">
+  <use href="/assets/rss-541ec5cea9cefd10d2fcfec01888f3f231a8829940249835fa7b7b3a12ae0d0d.svg#icon-rss" xlink:href="/assets/rss-541ec5cea9cefd10d2fcfec01888f3f231a8829940249835fa7b7b3a12ae0d0d.svg#icon-rss"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+  </ul>
+</nav>
+
+
+
+        <article class="article scrollappear">
+          <header class="article-header">
+            <h1>A Silly Satellite Wi-Fi Router Bug - Redport Pre-Auth RCE</h1>
+            <p>Pre-auth RCE over LAN in the RedPort wXa-223 satellite Wi-Fi router, found within minutes of unpacking the firmware.</p>
+            <div class="article-list-footer">
+  <span class="article-list-date">
+    July 24, 2025
+  </span>
+  <span class="article-list-divider">-</span>
+  <span class="article-list-minutes">
+    
+    
+      2 minute read
+    
+  </span>
+  <span class="article-list-divider">-</span>
+  <div class="article-list-tags">
+    
+      
+      <a href="/tag/embedded" title="See all posts with tag 'Embedded'">Embedded</a>
+    
+      
+      <a href="/tag/research" title="See all posts with tag 'Research'">Research</a>
+    
+      
+      <a href="/tag/rce" title="See all posts with tag 'RCE'">RCE</a>
+    
+  </div>
+</div>
+          </header>
+
+          <div class="article-content">
+            <h1 id="overview">Overview:</h1>
+<p>A few months ago, I was browsing the strange world of satellite products and services. Most SatTerms and routers have firmware readily available online (such as <a href="https://www.viasat.com/customer-service/bgan-firmware/">here</a> or <a href="https://www.speedcast.com/support-center/firmware/">here</a>). While flipping through various websites, I stumbled across <a href="https://www.redportglobal.com/">RedPort</a>, a company recently acquired by <a href="https://www.pulsarbeyond.com/">Pulsar International</a>. I grabbed firmware for their most popular device, the <a href="https://www.mysatphone.com/products/gmn-wxa-223?srsltid=AfmBOoq4aixmEU2tbhIHy4q05xyTclMqOQI412xMzeUV_Bi78kRlDxGM">wXa-223</a> and was able to unpack it with binwalk.</p>
+
+<p>Within 4 minutes, I had pre-auth RCE over LAN…I wish that was a joke.</p>
+<h1 id="details">Details:</h1>
+<p>The device has a web-server intended for management functionality and to serve as a GUI for texting / emailing over satellite comms. For authenticated endpoints, the <code class="highlighter-rouge">check_auth</code> PHP function is used as a guard:</p>
+
+<div class="language-php highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">function</span> <span class="n">check_auth</span><span class="p">(){</span>
+
+	<span class="k">if</span><span class="p">(</span><span class="o">!</span> <span class="k">isset</span><span class="p">(</span><span class="nv">$_SERVER</span><span class="p">[</span><span class="s1">'PHP_AUTH_USER'</span><span class="p">])){</span>
+        <span class="nb">header</span><span class="p">(</span><span class="s1">'WWW-Authenticate: Basic realm="Private"'</span><span class="p">);</span>
+        <span class="nb">header</span><span class="p">(</span><span class="s1">'HTTP/1.0 401 Unauthorized'</span><span class="p">);</span>
+        <span class="k">echo</span> <span class="s1">'No Username Provided'</span><span class="p">;</span>
+		<span class="k">exit</span><span class="p">;</span>
+
+	<span class="p">}</span>
+
+	<span class="nv">$usr</span><span class="o">=</span><span class="nv">$_SERVER</span><span class="p">[</span><span class="s1">'PHP_AUTH_USER'</span><span class="p">];</span>
+	<span class="nv">$cmd</span> <span class="o">=</span> <span class="s2">"perl -e '@a=getpwnam(</span><span class="se">\"</span><span class="nv">$usr</span><span class="se">\"</span><span class="s2">);</span><span class="se">\$</span><span class="s2">b=join(</span><span class="se">\"</span><span class="s2">,</span><span class="se">\"</span><span class="s2">,@a);print</span><span class="se">\$</span><span class="s2">b'"</span><span class="p">;</span>
+
+	<span class="nv">$pwinfostr</span><span class="o">=</span><span class="s2">""</span><span class="p">;</span>
+	<span class="nb">exec</span><span class="p">(</span><span class="nv">$cmd</span><span class="p">,</span><span class="nv">$pwinfostr</span><span class="p">);</span>
+
+	<span class="c1">// ... code continues ...</span>
+<span class="cp">?&gt;</span>
+</code></pre></div></div>
+
+<p>So…yeah. Take the user-supplied username (<code class="highlighter-rouge">PHP_AUTH_USER</code>) and throw it right into a perl command. Then just…execute it.</p>
+
+<p>We can escape the command string and then use netcat (included with busybox on the device) to launch a reverse shell</p>
+
+<p><img src="/assets/img/img_redport/redport-1.png" alt="" /></p>
+
+<p>Oh what do you know…it also runs as root.</p>
+
+<p><img src="/assets/img/img_redport/redport-2.png" alt="" /></p>
+
+<h1 id="disclosure">Disclosure:</h1>
+<p>This vulnerability was disclosed through 3 channels - a direct message to two employees as well as a filed support ticket. Each of these was followed-up on..twice. My business partner also <em>called the office in Tennessee</em> and was told to try back later…we were subsequently ghosted. ~7 total communication attempts over 90 days with a grand total of <em>nada</em> in response.</p>
+
+<p>Soooo this is unpatched. I didn’t dig into the device any further (shortest project ever), but there is likely other low-hanging fruit and some juicier attack surfaces outside of the localw web-server.</p>
+
+          </div>
+          <div class="article-share">
+            
+            
+            <a href="https://twitter.com/home?status=A+Silly+Satellite+Wi-Fi+Router+Bug+-+Redport+Pre-Auth+RCE%20-%20https://stigward.github.io/posts/redport-satellite-preauth-rce/%20by%20@_stigward" title="Share on Twitter" rel="noreferrer noopener" target="_blank">
+              <svg viewBox="0 0 512 512"><path d="M492 109.5c-17.4 7.7-36 12.9-55.6 15.3 20-12 35.4-31 42.6-53.6 -18.7 11.1-39.4 19.2-61.5 23.5C399.8 75.8 374.6 64 346.8 64c-53.5 0-96.8 43.4-96.8 96.9 0 7.6 0.8 15 2.5 22.1 -80.5-4-151.9-42.6-199.6-101.3 -8.3 14.3-13.1 31-13.1 48.7 0 33.6 17.2 63.3 43.2 80.7C67 210.7 52 206.3 39 199c0 0.4 0 0.8 0 1.2 0 47 33.4 86.1 77.7 95 -8.1 2.2-16.7 3.4-25.5 3.4 -6.2 0-12.3-0.6-18.2-1.8 12.3 38.5 48.1 66.5 90.5 67.3 -33.1 26-74.9 41.5-120.3 41.5 -7.8 0-15.5-0.5-23.1-1.4C62.8 432 113.7 448 168.3 448 346.6 448 444 300.3 444 172.2c0-4.2-0.1-8.4-0.3-12.5C462.6 146 479 129 492 109.5z"/></svg>
+            </a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u=https://stigward.github.io/posts/redport-satellite-preauth-rce/" title="Share on Facebook" rel="noreferrer noopener" target="_blank">
+              <svg viewBox="0 0 512 512"><path d="M288 192v-38.1c0-17.2 3.8-25.9 30.5-25.9H352V64h-55.9c-68.5 0-91.1 31.4-91.1 85.3V192h-45v64h45v192h83V256h56.4l7.6-64H288z"/></svg>
+            </a>
+          </div>
+
+          
+        </article>
+        <footer class="footer scrollappear">
+  <p>
+    &copy; 2026 Stig's Lab Notes.
+    Built with <a href="https://github.com/nielsenramon/chalk" rel="noreferrer noopener" target="_blank" title="Chalk theme for Jekyll">Chalk</a>.
+  </p>
+</footer>
+
+      </div>
+    </div>
+  </main>
+  
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-QK87P1LVPH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-QK87P1LVPH');
+  </script>
+
+
+<script type="text/javascript" src="/assets/vendor-bcef26dde016217d3eab202f42759aae5d17330fdb76331068f6269a84d8437f.js" integrity="sha256-vO8m3eAWIX0+qyAvQnWarl0XMw/bdjMQaPYmmoTYQ38=" crossorigin="anonymous"></script>
+
+
+  <script type="text/javascript" src="/assets/webfonts-cd7eae67265bcd101d0f598456b16171b2533d714dcc3a5b6ddacfdf234c4cbc.js" integrity="sha256-zX6uZyZbzRAdD1mEVrFhcbJTPXFNzDpbbdrP3yNMTLw=" crossorigin="anonymous"></script>
+
+
+
+  <script type="text/javascript" src="/assets/scrollappear-7691f37e9154c7d53f7515a518dbb0faf3a73d9b3d5b75522867a134952d0a76.js" integrity="sha256-dpHzfpFUx9U/dRWlGNuw+vOnPZs9W3VSKGehNJUtCnY=" crossorigin="anonymous"></script>
+
+
+<script type="text/javascript" src="/assets/application-7b6260deb98e64a8a42b97f5c18ad2a8c9507d70f9a097a440b354770f979dc7.js" integrity="sha256-e2Jg3rmOZKikK5f1wYrSqMlQfXD5oJekQLNUdw+Xncc=" crossorigin="anonymous"></script>
+
+
+</body>
+</html>

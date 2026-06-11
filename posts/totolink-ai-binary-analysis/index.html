@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <title>Stig's Lab Notes | AI-Driven Binary Analysis on a TOTOLINK Router - Shooting Bugs-In-A-Barrel</title>
+  <meta name="description" content="Using PRIZM ZERO's AI-driven binary analysis to reproduce known CVEs and find new memory-corruption bugs in a TOTOLINK router's cstecgi.cgi.">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:title" content="AI-Driven Binary Analysis on a TOTOLINK Router - Shooting Bugs-In-A-Barrel">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://stigward.github.io/posts/totolink-ai-binary-analysis/">
+  <meta property="og:description" content="Using PRIZM ZERO's AI-driven binary analysis to reproduce known CVEs and find new memory-corruption bugs in a TOTOLINK router's cstecgi.cgi.">
+  <meta property="og:site_name" content="Stig's Lab Notes">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:url" content="https://stigward.github.io/posts/totolink-ai-binary-analysis/">
+  <meta name="twitter:title" content="AI-Driven Binary Analysis on a TOTOLINK Router - Shooting Bugs-In-A-Barrel">
+  <meta name="twitter:description" content="Using PRIZM ZERO's AI-driven binary analysis to reproduce known CVEs and find new memory-corruption bugs in a TOTOLINK router's cstecgi.cgi.">
+
+  
+    <meta property="og:image" content="https://stigward.github.io/assets/og-image-ee46bbc61b334e821e81534b1fd43f3fee6f020ec174b3c2114445695fd48c01.jpg">
+    <meta name="twitter:image" content="https://stigward.github.io/assets/og-image-ee46bbc61b334e821e81534b1fd43f3fee6f020ec174b3c2114445695fd48c01.jpg">
+  
+
+  <link href="https://stigward.github.io/feed.xml" type="application/rss+xml" rel="alternate" title="Stig's Lab Notes Last 10 blog posts" />
+
+  
+
+  
+
+    
+      <link rel="icon" type="image/x-icon" href="/assets/favicon-dark-11327753546b2135c989eee5cd83497a2734b702928d016839d795f6c706e3d5.ico">
+      <link rel="apple-touch-icon" href="/assets/apple-touch-icon-dark-d161409442b7e523089f24d08d0a55951549ece7504207c376d53b020713494d.png">
+      <link rel="stylesheet" type="text/css" href="/assets/dark-c3423cb8f8dc5b46f03bebdb004bc5d65fb395e4743a83975c4a75e75300a1ca.css" integrity="sha256-w0I8uPjcW0bwO+vbAEvF1l+zleR0OoOXXEp151MAoco=" crossorigin="anonymous">
+    
+
+  
+
+</head>
+
+<body>
+  <main>
+    <div class="grid grid-centered">
+      <div class="grid-cell">
+        <nav class="header-nav scrollappear">
+  <a href="/" class="header-logo" title="Stig's Lab Notes">Stig's Lab Notes</a>
+  <ul class="header-links">
+    
+      <li>
+        <a href="/about" title="About me">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-about">
+  <use href="/assets/about-ecf154b571ab8034ae00aeed91a3b7ad68db80b46d958753ad6216c919486e88.svg#icon-about" xlink:href="/assets/about-ecf154b571ab8034ae00aeed91a3b7ad68db80b46d958753ad6216c919486e88.svg#icon-about"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+      <li>
+        <a href="https://twitter.com/_stigward" rel="noreferrer noopener" target="_blank" title="Twitter">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-twitter">
+  <use href="/assets/twitter-8842c33965263ad1b03a978406826677a668f94125d5837e70ab83f24b3213a7.svg#icon-twitter" xlink:href="/assets/twitter-8842c33965263ad1b03a978406826677a668f94125d5837e70ab83f24b3213a7.svg#icon-twitter"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+    
+    
+      <li>
+        <a href="https://github.com/stigward" rel="noreferrer noopener" target="_blank" title="GitHub">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-github">
+  <use href="/assets/github-094f81040819f34343ee6ffff0980f17e2807b08b595eaaf66ae3554934fd78d.svg#icon-github" xlink:href="/assets/github-094f81040819f34343ee6ffff0980f17e2807b08b595eaaf66ae3554934fd78d.svg#icon-github"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+      <li>
+        <a href="mailto:stigward.research@gmail.com" title="Email">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-email">
+  <use href="/assets/email-782473193bf750036fdb90e8daa075508a20509d01854c09f3237c144a3f0601.svg#icon-email" xlink:href="/assets/email-782473193bf750036fdb90e8daa075508a20509d01854c09f3237c144a3f0601.svg#icon-email"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+      <li>
+        <a href="/feed.xml" rel="noreferrer noopener" target="_blank" title="RSS">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-rss">
+  <use href="/assets/rss-541ec5cea9cefd10d2fcfec01888f3f231a8829940249835fa7b7b3a12ae0d0d.svg#icon-rss" xlink:href="/assets/rss-541ec5cea9cefd10d2fcfec01888f3f231a8829940249835fa7b7b3a12ae0d0d.svg#icon-rss"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+  </ul>
+</nav>
+
+
+
+        <article class="article scrollappear">
+          <header class="article-header">
+            <h1>AI-Driven Binary Analysis on a TOTOLINK Router - Shooting Bugs-In-A-Barrel</h1>
+            <p>Using PRIZM ZERO's AI-driven binary analysis to reproduce known CVEs and find new memory-corruption bugs in a TOTOLINK router's cstecgi.cgi.</p>
+            <div class="article-list-footer">
+  <span class="article-list-date">
+    June 18, 2025
+  </span>
+  <span class="article-list-divider">-</span>
+  <span class="article-list-minutes">
+    
+    
+      11 minute read
+    
+  </span>
+  <span class="article-list-divider">-</span>
+  <div class="article-list-tags">
+    
+      
+      <a href="/tag/embedded" title="See all posts with tag 'Embedded'">Embedded</a>
+    
+      
+      <a href="/tag/ai" title="See all posts with tag 'AI'">AI</a>
+    
+      
+      <a href="/tag/research" title="See all posts with tag 'Research'">Research</a>
+    
+      
+      <a href="/tag/rce" title="See all posts with tag 'RCE'">RCE</a>
+    
+  </div>
+</div>
+          </header>
+
+          <div class="article-content">
+            <p><strong>Original research published on a company blog <a href="https://www.prizmlabs.io/post/shooting-bugs-in-a-barrel-with-ai-driven-binary-analysis-on-a-totolink-router">here</a></strong></p>
+
+<hr />
+
+<p>Last week, we were doom-scrolling <a href="https://vuldb.com/">vuldb</a> and came across a handful of sequential CVEs published for an old TOTOLINK router. These CVEs were all memory corruption bugs, affecting the cstecgi.cgi binary .</p>
+
+<p>While developing PRIZM ZERO, our automated vulnerability discovery tool, we regularly test real-world binaries to assess the tool’s performance against known positives - this seemed like an excellent opportunity to do just that. Also, given the…less than stellar security track record of the device, we were hopeful to <em>maybe</em> stumble across some unknown true positives as well (spoiler alert, we did).</p>
+
+<h2 id="vulnerability-overview">Vulnerability Overview:</h2>
+<p>The vulnerabilities in question were:</p>
+
+<ul>
+  <li><a href="https://nvd.nist.gov/vuln/detail/CVE-2025-5901">CVE-2025-5901</a> - Stack buffer overflow in UploadCustomModule</li>
+  <li><a href="https://nvd.nist.gov/vuln/detail/CVE-2025-5902">CVE-2025-5902</a> - Stack buffer overflow in setUpgradeFW</li>
+  <li><a href="https://nvd.nist.gov/vuln/detail/CVE-2025-5903">CVE-2025-5903</a> - Stack buffer overflow in setWiFiAclRules</li>
+  <li><a href="https://nvd.nist.gov/vuln/detail/CVE-2025-5904">CVE-2025-5904</a> - Stack buffer overflow in setWiFiMeshName</li>
+  <li><a href="https://nvd.nist.gov/vuln/detail/CVE-2025-5905">CVE-2025-5905</a> - Stack buffer overflow in setWiFiRepeaterCfg</li>
+</ul>
+
+<p>The researcher who identified these vulnerabilities included a small RCA and crash PoC for each individual finding. For example, here is the overview of the CVE-2025-5901.</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_31e8956209af4e63b0c4b73b904ab78d~mv2.png/v1/fill/w_740,h_338,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_31e8956209af4e63b0c4b73b904ab78d~mv2.png" alt="" /></p>
+
+<p>So….yeah. Take user parameter, don’t check it, strcpy it into fixed sized buffer. <em>Look out…y2k is just around the corner!</em> The other 4 bugs follow much the same pattern - sometimes with slightly different sinks, but always copying user data directly into a stack buffer without size checks.</p>
+
+<p>Lets see if we can find these with ~ The Power of AI ~.</p>
+<h2 id="obtaining-and-unpacking-the-firmware">Obtaining And Unpacking The Firmware:</h2>
+<p>The first step of any good IoT hacking project is, of course, to obtain and unpack the firmware. Thankfully, this is pretty easy for TOTOLINK devices. Firmware downloads can be found <a href="https://totolink.com.my/products/t10/">on the company site</a>, and the file system can be unpacked with binwalk. From there, the binary in question is located at /webcste/cgi-bin/cstecgi.cgi. We yoinked that and threw it into PRIZM ZERO.</p>
+<h2 id="how-prizm-zero-analysis-works">How PRIZM ZERO Analysis Works:</h2>
+<p>In order to better understand PRIZM ZERO (we need a nickname/shorthand, but P0 is taken…sadly), its important to peek under the hood. The tool is built with a handful of program analysis scripts written with Binary Ninja’s API. The fundamental idea behind the tooling is high quality inputs to an LLM agent leads to high(er) quality outputs. The goal is to really fine-tune these program analysis scripts to identify legitimate bug candidates.</p>
+
+<p>However, as anyone familiar with this type of work will know, program analysis scripts can be loud - no matter how good they are, they will likely have a relatively high false positive rate.</p>
+
+<p>To combat this, the detections from these scripts are then fed to a custom agent. The agent has access to tooling and can use the disassembly, intermediate language representation, and Single Static Assignment (SSA) form to triage each individual finding and provide a confidence score reflecting the true positive likelihood.</p>
+
+<p><img src="https://static.wixstatic.com/media/279f3c_83d9c38469ef4dc2803476769e9a82f0~mv2.png/v1/fill/w_740,h_183,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/279f3c_83d9c38469ef4dc2803476769e9a82f0~mv2.png" alt="" /></p>
+<h2 id="results">Results:</h2>
+<p>When we dropped the binary into PRIZM ZERO and ran the initial analysis, we ended up with 236 initial findings.</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_42149bd20cc940358c8ff0f1f438f039~mv2.png/v1/fill/w_740,h_732,al_c,q_90,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_42149bd20cc940358c8ff0f1f438f039~mv2.png" alt="" />
+After running the triager, the number was paired down to 99. One final round of deduplication, and we ended up at 35. 35 is a <em>lot</em> more manageable to review than 236.</p>
+
+<p>Because the binary is stripped, we needed to find the functions associated with each endpoint handler and compare them with the CVE descriptions. Thankfully that was pretty easy - when we searched for the string, we directly found the associated function handler.
+<img src="https://static.wixstatic.com/media/82b748_14df8aeefe8f42cb824f1f10c9a2ccc7~mv2.jpg/v1/fill/w_740,h_167,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_14df8aeefe8f42cb824f1f10c9a2ccc7~mv2.jpg" alt="Yeah, yeah we could have used a slick MCP server for this and done it faster...relax" /></p>
+
+<p>Yeah, yeah we could have used a slick MCP server for this and done it faster…relax That led us to the following mappings:</p>
+<ul>
+  <li>CVE-2025-5901 - UploadCustomModule - sub_41d688</li>
+  <li>CVE-2025-5902 - setUpgradeFW - sub_41d47c</li>
+  <li>CVE-2025-5903 - setWiFiAclRules - sub_415edc</li>
+  <li>CVE-2025-5904 - setWiFiMeshName - sub_2160c</li>
+  <li>CVE-2025-5905 - setWiFiRepeaterCfg - sub_4167cc</li>
+</ul>
+
+<p>Then we searched for the corresponding function names in the PRIZM ZERO output. For example, when we looked for sub_41d688 in our 35 findings, we got this hit:</p>
+
+<blockquote>
+  <p>In sub_41d668 the code unconditionally invokes strcpy(&amp;str, websGetVar(…)). Although &amp;str is large (0x32000 bytes), the length of the JSON File field is attacker-controlled and not bounds-checked before the strcpy. This allows a remote overflow of the stack buffer, leading to potential code execution.</p>
+</blockquote>
+
+<p>Comparing that to the original vulnerability description provided by the researcher:</p>
+
+<blockquote>
+  <p>In the T10 V2_Firmware V2_V4.1.8cu.5207 firmware has a buffer overflow vulnerability in the UploadCustomModule function. The v8 variable receives the File parameter from a POST request. However, since the user can control the input of File, the strcpy(v15, v8); can cause a buffer overflow vulnerability.</p>
+</blockquote>
+
+<p>That’s actually…pretty good.</p>
+
+<p>Similarly, the tool was able to spot CVE-2025-5903, CVE-2025-5904, and CVE-2025-5905 - you can see the output on the PRIZM ZERO <a href="https://zero.prizmlabs.io/vuln-discoveries">Vuln Discoveries</a>  page.</p>
+
+<p>Those with a keen eye will notice <em>CVE-2025-5902 is no where to be seen.</em> And you would be correct - we’ll come back to that in a second.</p>
+<h3 id="the-other-findings">The Other Findings</h3>
+<p>Okay - what about the other findings? We started with 35, and we have now reviewed 4 off the list. In addition, 2 of the findings were just potential NULL derefs based on not checking environment variables:</p>
+
+<blockquote>
+  <p>The code calls strtol(getenv("CONTENT_LENGTH"), …) without checking if getenv returned NULL. In a CGI context, CONTENT_LENGTH may be unset (e.g., on a GET request), causing getenv to return NULL and leading to a NULL pointer dereference when passed to strtol. This is a real issue that can crash the CGI application (denial-of-service).</p>
+</blockquote>
+
+<p>Not necessarily a false positive, but also certainly not very interesting. So we will ditch those. That leaves us with 29.</p>
+<h3 id="cve-situation">CVE Situation</h3>
+<p>TOTOLINK has this really fun quirk where they just actively decide not to patch remotely exploitable bugs in their webserver, even if they are actively <a href="https://www.fortinet.com/blog/threat-research/new-rust-botnet-rustobot-is-routed-via-routers">targeted by botnets</a>. So, even though we ran this on the most up-to-date software release, quite a few of the remaining bugs were already known N-days.</p>
+
+<p>Results are included below - <strong>at least</strong> 11 of our 27 true positive findings were associated with a CVE (sort-of). Often, they were associated with multiple CVEs across a range of years, since:</p>
+
+<ol>
+  <li>TOTOLINK doesn’t respond to disclosures or active exploitation</li>
+  <li>CVE is broken</li>
+</ol>
+
+<p>It’s also quite possible that other true positives included here have already been reported, and just had vague CVE descriptions. That said, we did our best to map descriptions back to our own findings. The table below is color-coded - green means we were able to easily trigger the bug in our emulated environment, yellow means the bug itself exists, but the trigger would be dependent on device configuration, and red is a false positive.</p>
+
+<p>We would generally be hesitant to drop 0-days, but given the findings and the consistent <a href="https://github.com/SpikeReply/advisories/blob/main/cve/totolink/cve-2024-27521.md">lack</a> of vendor response for the last 3 years, the T10 should be treated as EOL from a security perspective at this point. We <em>will,</em> however, refrain from dropping full PoCs.</p>
+<h3 id="command-injection-vulnerabilities">Command Injection Vulnerabilities</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Function</th>
+      <th>Endpoint</th>
+      <th>Description</th>
+      <th>Human Triage</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>sub_41f89c</td>
+      <td>setNoticeCfg</td>
+      <td>noticeUrl parameter command injection</td>
+      <td>[True Positive] - CVE-2025-28035, CVE-2025-28036</td>
+    </tr>
+    <tr>
+      <td>sub_41c90c</td>
+      <td>informSlaveUpdate</td>
+      <td>echo command with unescaped user input</td>
+      <td>[True Positive] - No CVE</td>
+    </tr>
+    <tr>
+      <td>sub_4267a0</td>
+      <td>N/A</td>
+      <td>arg1 parameter command injection</td>
+      <td>[False Positive] - Dead Code</td>
+    </tr>
+    <tr>
+      <td>sub_427d3c</td>
+      <td>N/A</td>
+      <td>md5sum command injection</td>
+      <td>[False Positive] - Not attacker controlled</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="memory-corruption-vulnerabilities">Memory Corruption Vulnerabilities</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>Function</th>
+      <th>Endpoint</th>
+      <th>Description</th>
+      <th>CVE</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>sub_4263e8</td>
+      <td>setIpv6WanCfg</td>
+      <td>overflow with routername parameter</td>
+      <td>[True Positive] - No CVE</td>
+    </tr>
+    <tr>
+      <td>sub_42131c</td>
+      <td>setWiFiWpsStart</td>
+      <td>overflow with WPS PIN</td>
+      <td>[False Positive] - Conditional Constraint</td>
+    </tr>
+    <tr>
+      <td>sub_4166b8</td>
+      <td>setIpv6LanCfg</td>
+      <td>overflow with dnsAddr, potrName parameters</td>
+      <td>[True Positive] - No CVE</td>
+    </tr>
+    <tr>
+      <td>sub_41c90c</td>
+      <td>informSlaveUpdate</td>
+      <td>512-byte buffer overflow</td>
+      <td>[True Positive] - No CVE</td>
+    </tr>
+    <tr>
+      <td>sub_41f704</td>
+      <td>setTracerouteCfg</td>
+      <td>overflow with command parameter</td>
+      <td>[True Positive] - Related to - CVE-2023-30013 - see below</td>
+    </tr>
+    <tr>
+      <td>sub_41f7d0</td>
+      <td>setDiagnosisCfg</td>
+      <td>overflow with ping command</td>
+      <td>[True Positive] - Related to CVE-2022-28908, CVE-2025-28037 - see below</td>
+    </tr>
+    <tr>
+      <td>sub_41f89c</td>
+      <td>setNoticeCfg</td>
+      <td>overflow with noticeUrl</td>
+      <td>[True Positive] - Related to CVE-2025-28035, CVE-2025-28036 - see below</td>
+    </tr>
+    <tr>
+      <td>sub_42160c</td>
+      <td>setWiFiMeshName</td>
+      <td>overflow in haystack buffer</td>
+      <td>[True Positive] - CVE-2025-5904</td>
+    </tr>
+    <tr>
+      <td>sub_415658</td>
+      <td>setIpPortFilterRules</td>
+      <td>overflow to 3-byte buffer</td>
+      <td>[True Positive] - CVE-2022-36488, CVE-2024-1002</td>
+    </tr>
+    <tr>
+      <td>sub_415edc</td>
+      <td>setWiFiAclRules</td>
+      <td>overflow with desc</td>
+      <td>[True Positive]</td>
+    </tr>
+    <tr>
+      <td>sub_415afc</td>
+      <td>setParentalRules</td>
+      <td>overflow to 0x40-byte buffer with desc</td>
+      <td>[True Positive] - CVE-2024-8574, CVE-2024-7333</td>
+    </tr>
+    <tr>
+      <td>sub_41631c</td>
+      <td>setWiFiScheduleCfg</td>
+      <td>overflow with desc</td>
+      <td>[True Positive] - No CVE</td>
+    </tr>
+    <tr>
+      <td>sub_4167cc</td>
+      <td>setWiFiRepeaterCfg</td>
+      <td>strcpy WEP passphrase overflow</td>
+      <td>[True Positive] - CVE-2025-5905</td>
+    </tr>
+    <tr>
+      <td>sub_41aae8</td>
+      <td>setPortForwardRules</td>
+      <td>overflow 64-byte input to 24-byte buffer</td>
+      <td>[True Positive] - Constrained</td>
+    </tr>
+    <tr>
+      <td>sub_4227cc</td>
+      <td>setRadvdCfg</td>
+      <td>overflow with radvdPotrName</td>
+      <td>[True Positive] - No CVE</td>
+    </tr>
+    <tr>
+      <td>sub_41d668</td>
+      <td>UploadCustomModule</td>
+      <td>overflow with file name</td>
+      <td>[True Positive] - CVE-2025-5901</td>
+    </tr>
+    <tr>
+      <td>sub_417370</td>
+      <td>setipv6WanCfg</td>
+      <td>20-byte write to 4-byte buffer</td>
+      <td>[True Positive] - No CVE</td>
+    </tr>
+    <tr>
+      <td>sub_424c54</td>
+      <td>N/A</td>
+      <td>fgets with 0x3ff size to 0x40 buffer</td>
+      <td>[True Positive] - Constrained</td>
+    </tr>
+    <tr>
+      <td>sub_424fbc</td>
+      <td>N/A</td>
+      <td>unbounded buffer write in parsing loop</td>
+      <td>[True Positive] - Constrained</td>
+    </tr>
+    <tr>
+      <td>sub_405178</td>
+      <td>N/A</td>
+      <td>overflow in mesh_assoc_mpinfo</td>
+      <td>[True Positive] - Constrained</td>
+    </tr>
+    <tr>
+      <td>sub_404d7c</td>
+      <td>N/A</td>
+      <td>strcpy overflow by 4 bytes</td>
+      <td>[True Positive] - Constrained</td>
+    </tr>
+    <tr>
+      <td>main()</td>
+      <td>Main CGI Handler</td>
+      <td>overflow in str_1 buffer with JSON construction</td>
+      <td>[True Positive] - Constrained</td>
+    </tr>
+    <tr>
+      <td>sub_405bf0</td>
+      <td>getWiFiMeshConfig</td>
+      <td>overflow</td>
+      <td>[True Positive] - Constrained</td>
+    </tr>
+    <tr>
+      <td>sub_408484</td>
+      <td>getSmartQosCfg</td>
+      <td>strcpy from 64-byte buffer to 4-byte var</td>
+      <td>[True Positive] - Constrained</td>
+    </tr>
+    <tr>
+      <td>sub_4267a0</td>
+      <td>N/A</td>
+      <td>overflow in 128-byte buffer</td>
+      <td>[False Positive] - Dead code</td>
+    </tr>
+    <tr>
+      <td>sub_423f5c</td>
+      <td>N/A</td>
+      <td>overflow in /proc path construction</td>
+      <td>[False Positive] - Not attacker controlled</td>
+    </tr>
+    <tr>
+      <td>sub_414b68</td>
+      <td>setWiFiWpsCfg</td>
+      <td>overflow with wifiIdx parameter</td>
+      <td>[False Positive] - Not a vulnerability</td>
+    </tr>
+    <tr>
+      <td>sub_40f738</td>
+      <td>getIpPortFilterRules</td>
+      <td>strcpy overflow with desc field</td>
+      <td>[False Positive]</td>
+    </tr>
+    <tr>
+      <td>sub_407f80</td>
+      <td>getUrlFilterRules</td>
+      <td>strcpy from 88-byte to 64-byte buffer</td>
+      <td>[False Positive] - Not Attacker Controlled</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="interesting-findings">Interesting Findings:</h2>
+
+<h3 id="the-good">The Good</h3>
+<p>When manually reviewing the findings, there were clear examples where the agent was able to perform steps similar to a human triage workflow. For example, take the bug in sub_424c54. When manually triaging, we initially planned to mark this as a false positive. However, looking back at the agent’s thought process, it had the following description:</p>
+
+<blockquote>
+  <p>The function sub_424c54 calls fgets(str, 0x3ff, stream) where str points to a local stack buffer of only 0x40 bytes (64 bytes). This is a clear stack buffer overflow. In practice, the input comes from /proc/net/route, which is generated by the kernel and not under attacker control, making exploitation unlikely. However, it remains a real bug (unsafe use of fgets) that could lead to stack corruption and potential crashes.</p>
+</blockquote>
+
+<p>Hard to argue with the reasoning. Not only that, but it changed the recommended severity suggested by the program analysis script, moving it from a HIGH to a LOW based on the new context. Another good example of this is the OOB Write Bug in setipv6WanCfg. The agent provides the following description:</p>
+
+<blockquote>
+  <p>In sub_417370 the code writes up to 20 bytes into the buffer pointed to by arg2 (offsets 0 through 19). In the caller sub_4231b0, arg2 is &amp;var_12c, a 4-byte int32_t on the stack. This mismatch leads to a real out-of-bounds write of at least 16 extra bytes, corrupting the stack and enabling potential control-flow hijack.</p>
+</blockquote>
+
+<p>Here, it demonstrates the ability to trace data-flow across multiple function calls, referencing the call-stack and keeping track of different variables and their sizes.</p>
+<h3 id="the-bad">The Bad</h3>
+
+<p>Sometimes though, the agent totally whiffs - even on seemingly easier RCAs than the ones above. For example, take the supposed command injection in sub_427d3c . The following description is provided:</p>
+
+<blockquote>
+  <p>The function sub_427d3c constructs a shell command via sprintf: <code class="highlighter-rouge">md5sum %s | cut -d ' ' -f0</code>, using the untrusted arg1 directly into the command line. The resulting string is then passed to getCmdStr, which invokes a shell or system call to execute the command. An attacker controlling arg1 can inject arbitrary shell metacharacters (e.g., "; rm -rf /"), leading to command injection and full code execution.</p>
+</blockquote>
+
+<p>But, one look at the cross references tells you arg1 is always hard-coded - so this would never be exploitable. Sometimes, it even confidently states information about the call stack which is blatantly incorrect. Take the reasoning from the sub_423f5c finding:</p>
+
+<blockquote>
+  <p>The function sub_423f5c allocates a fixed 0x44-byte (68) buffer (var_58) and then calls sprintf(var_58, "/proc/%s/mesh_assoc_mpinfo", arg2) without any length check on arg2. Since arg2 is fully attacker-controlled (it is sourced from unbounded web-request data), a string longer than ~43 characters will overflow var_58, leading to a stack-based buffer overflow. No bounds checking mitigates this, making it a real high-severity issue.</p>
+</blockquote>
+
+<p>This function only has one xref at memory address 0x404e40  and it reads sub_423f5c($a0_2, “wlan0”).</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_3e45bb0cf8924c1eaaf914028d711783~mv2.png/v1/fill/w_740,h_116,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_3e45bb0cf8924c1eaaf914028d711783~mv2.png" alt="" /></p>
+
+<p>I don’t know about you, but I don’t see a “fully attacker-controlled” arg2 from “an unbounded web-request”. The full PRIZM ZERO output is included on our <a href="https://github.com/PrizmLabs-io/blogs-and-exploits/blob/main/bugs-in-a-barrel/prizm_zero_output.json">GitHub</a> for further review - overall, there were 8 false positives. We certainly have room for fine-tuning, but for a pre-alpha, it’s not bad.</p>
+<h3 id="missing-true-positives">Missing True Positives?</h3>
+<p><strong>The Missing CVE-2025-5902</strong></p>
+
+<p>The elephant in the room will be missing true positives. In an effort to reduce the noise, how many real vulns did we kill? To be perfectly honest, there is no great way to test this with the available information. That said, we can start with CVE-2025-5902 - the missing bug we promised to get back to earlier.</p>
+
+<p>The description included in the original researchers reads as follows:</p>
+
+<blockquote>
+  <p>In the T10 V2_Firmware V2_V4.1.8cu.5207 firmware has a buffer overflow vulnerability in the setUpgradeFW function. The v6 variable receives the slaveIpList parameter from a POST request. However, since the user can control the input of slaveIpList, the sprintf and system can cause a command injection vulnerability.</p>
+</blockquote>
+
+<p>So, allegedly we’re missing an overflow AND a command injection. Interestingly enough, when we compare the researchers’ vulnerable firmware and our firmware, we see quite a big difference - and it doesn’t seem to just be a difference in Binary Ninja vs Ghidra:</p>
+
+<p>Here is the original post’s included image:</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_de7857629b664db290228bd2901ff1e4~mv2.webp/v1/fill/w_740,h_402,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_de7857629b664db290228bd2901ff1e4~mv2.webp" alt="" /></p>
+
+<p>Andddd here is what we see in our binary decomp:</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_f078c071ace84dc19fe297ac7650f72d~mv2.jpg/v1/fill/w_740,h_258,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_f078c071ace84dc19fe297ac7650f72d~mv2.jpg" alt="" /></p>
+
+<p>As you can see, in the firmware we are assessing, the endpoint handler has a fixed string for the system call, and does not try to construct fwSyncUpgIpList as in the original research. Not only that, but the sprintf in our decompilation is actually - believe it or not - safe since the format specifier is %d.</p>
+
+<p>So in this case, we don’t detect CVE-2025-5902 because it’s not actually present in our binary.</p>
+
+<p><strong>Aggressive De-duplication</strong></p>
+
+<p>Quite a few missing bugs resulted from an over-aggressive de-duplication effort. This was made abundantly clear, when cross referencing CVEs. Take, for example a bug and a pattern that was initially handled correctly: the command injection and the overflow associated with informSlaveUpdate . Here is the associated code:</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_c43bc0319c7146e7aec7f435c2f315ca~mv2.jpg/v1/fill/w_740,h_187,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_c43bc0319c7146e7aec7f435c2f315ca~mv2.jpg" alt="informSlaveUpdate endpoint handler" /></p>
+
+<p>informSlaveUpdate endpoint handler</p>
+
+<p>You can clearly see the sprintf, which could lead to an overflow, followed by the system call, which clearly leads to command injection. The same is true for setNoticeCfg, where we clearly retained both the overflow and the command injection in our final list.</p>
+
+<p>However, on de-duplication of both setDiagnosisCfg and setTraceRouteCfg, we remove the command injection finding despite it clearly following right after overflow. Looking back at the analysis, the de-duplication engine determined these were the same bug, and tried to consolidate them down. There were just too many bugs-in-the-barrel.</p>
+
+<p><img src="https://static.wixstatic.com/media/82b748_e900a56d69f241d48b15262f6d2f6e1a~mv2.jpg/v1/fill/w_740,h_215,al_c,q_80,usm_0.66_1.00_0.01,enc_avif,quality_auto/82b748_e900a56d69f241d48b15262f6d2f6e1a~mv2.jpg" alt="setDiagnosisCfg endpoint handler" /></p>
+
+<p>setDiagnosisCfg endpoint handler</p>
+<h2 id="learnings-and-takeaways">Learnings And Takeaways:</h2>
+<p>The experiment proved useful for new focus areas as we continuously improve PRIZM ZERO, specifically:</p>
+
+<ol>
+  <li>Our program analysis scripting. The more bug classes we can model, and the more information we can provide to our agents, the better. This is notoriously difficult for more complex bug classes, but we are actively working on improving our detection daily.</li>
+  <li>Agent fine-tuning, specifically around data flows and cross-references. There are strokes of brilliance, and strokes of complete hallucinations. Figuring out how to get more of the former and less of the latter is an important focus of our continuous R&amp;D efforts.</li>
+  <li>De-duplication. Maybe making it just a <em>touch</em> less aggressive.</li>
+</ol>
+
+          </div>
+          <div class="article-share">
+            
+            
+            <a href="https://twitter.com/home?status=AI-Driven+Binary+Analysis+on+a+TOTOLINK+Router+-+Shooting+Bugs-In-A-Barrel%20-%20https://stigward.github.io/posts/totolink-ai-binary-analysis/%20by%20@_stigward" title="Share on Twitter" rel="noreferrer noopener" target="_blank">
+              <svg viewBox="0 0 512 512"><path d="M492 109.5c-17.4 7.7-36 12.9-55.6 15.3 20-12 35.4-31 42.6-53.6 -18.7 11.1-39.4 19.2-61.5 23.5C399.8 75.8 374.6 64 346.8 64c-53.5 0-96.8 43.4-96.8 96.9 0 7.6 0.8 15 2.5 22.1 -80.5-4-151.9-42.6-199.6-101.3 -8.3 14.3-13.1 31-13.1 48.7 0 33.6 17.2 63.3 43.2 80.7C67 210.7 52 206.3 39 199c0 0.4 0 0.8 0 1.2 0 47 33.4 86.1 77.7 95 -8.1 2.2-16.7 3.4-25.5 3.4 -6.2 0-12.3-0.6-18.2-1.8 12.3 38.5 48.1 66.5 90.5 67.3 -33.1 26-74.9 41.5-120.3 41.5 -7.8 0-15.5-0.5-23.1-1.4C62.8 432 113.7 448 168.3 448 346.6 448 444 300.3 444 172.2c0-4.2-0.1-8.4-0.3-12.5C462.6 146 479 129 492 109.5z"/></svg>
+            </a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u=https://stigward.github.io/posts/totolink-ai-binary-analysis/" title="Share on Facebook" rel="noreferrer noopener" target="_blank">
+              <svg viewBox="0 0 512 512"><path d="M288 192v-38.1c0-17.2 3.8-25.9 30.5-25.9H352V64h-55.9c-68.5 0-91.1 31.4-91.1 85.3V192h-45v64h45v192h83V256h56.4l7.6-64H288z"/></svg>
+            </a>
+          </div>
+
+          
+        </article>
+        <footer class="footer scrollappear">
+  <p>
+    &copy; 2026 Stig's Lab Notes.
+    Built with <a href="https://github.com/nielsenramon/chalk" rel="noreferrer noopener" target="_blank" title="Chalk theme for Jekyll">Chalk</a>.
+  </p>
+</footer>
+
+      </div>
+    </div>
+  </main>
+  
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-QK87P1LVPH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-QK87P1LVPH');
+  </script>
+
+
+<script type="text/javascript" src="/assets/vendor-bcef26dde016217d3eab202f42759aae5d17330fdb76331068f6269a84d8437f.js" integrity="sha256-vO8m3eAWIX0+qyAvQnWarl0XMw/bdjMQaPYmmoTYQ38=" crossorigin="anonymous"></script>
+
+
+  <script type="text/javascript" src="/assets/webfonts-cd7eae67265bcd101d0f598456b16171b2533d714dcc3a5b6ddacfdf234c4cbc.js" integrity="sha256-zX6uZyZbzRAdD1mEVrFhcbJTPXFNzDpbbdrP3yNMTLw=" crossorigin="anonymous"></script>
+
+
+
+  <script type="text/javascript" src="/assets/scrollappear-7691f37e9154c7d53f7515a518dbb0faf3a73d9b3d5b75522867a134952d0a76.js" integrity="sha256-dpHzfpFUx9U/dRWlGNuw+vOnPZs9W3VSKGehNJUtCnY=" crossorigin="anonymous"></script>
+
+
+<script type="text/javascript" src="/assets/application-7b6260deb98e64a8a42b97f5c18ad2a8c9507d70f9a097a440b354770f979dc7.js" integrity="sha256-e2Jg3rmOZKikK5f1wYrSqMlQfXD5oJekQLNUdw+Xncc=" crossorigin="anonymous"></script>
+
+
+</body>
+</html>
