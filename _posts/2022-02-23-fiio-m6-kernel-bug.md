@@ -1,11 +1,8 @@
 ---
 title: Rooting the FiiO M6 - Part 1 - Using the "World's Worst Fuzzer" To Find A Kernel Bug
-author: stigward 
 date: 2023-02-19 11:33:00 +0800
-categories: [Vuln Research, Android]
+description: "Using the world's worst fuzzer to find a kernel stack overflow in the FiiO M6's procfs debug interface."
 tags: [android, kernel, research]
-math: true
-img_path: /assets/img/img_fiio/
 ---
 # Overview: 
 A few months ago, I was cleaning off my hardware workbench when I came across my [FiiO M6](https://www.fiio.com/m6), an Android-based "portable high-resolution lossless music player". I originally purchased the device to aid in my language learning studies and dabble in the world of "hi-fi" audio. With both those phases of my life well in the past, the device seemed to make a perfect vulnerability research target. Coincidentally, I had also just watched through all of [gamozolabs's Android exploitation livestream](https://youtu.be/g62FXds2pt8), so I was feeling even more inspired to target an Android-based device. 
@@ -31,7 +28,7 @@ in which a user can overflow the 128-byte buffer, resulting in a crash.
 ## Getting A Shell
 The first thing I did was get USB debugging working. This was done by enabling the [Developer Options](https://developer.android.com/studio/debug/dev-options) on the device and setting up [Android Debug Bridge](https://developer.android.com/studio/command-line/adb) (adb) on my laptop. Once that was done, I was able to run `adb shell` and drop into a shell on the device.
 
-![adb_shell](adb_shell.png)
+![adb_shell](/assets/img/img_fiio/adb_shell.png)
 
 As you can see in the above screenshot, the device was running a pretty old kernel version. This improved my hopes of being able to potentially find a vuln, even with my limited knowledge and skill set. 
 
@@ -170,10 +167,10 @@ fn main() {
 # Getting a Crash and Triaging:
 After only about 15 seconds, the modified script with only 1 thread got a crash. The output of our fuzzer indicates the crash took place while writing to `ftxxxx-debug`.
 
-![ftxxxx_crash](ftxxxx_crash.png)
+![ftxxxx_crash](/assets/img/img_fiio/ftxxxx_crash.png)
 Once the device rebooted, the logs stored in `/sys/fs/pstore/console-ramoops` showed the following:
 
-![kernel_panic](kernel_panic.png)
+![kernel_panic](/assets/img/img_fiio/kernel_panic.png)
 Nice! Based on the information displayed in the above two screenshots, I assumed that this was some sort of stack-based overflow in `/proc/ftxxxx-debug` 's write handler and the garbage data has smashed the stack and overwritten the saved return pointer, which is how the `0x41`s ended up in the PC register.
 
 # Root Cause Analysis: 

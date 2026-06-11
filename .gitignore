@@ -2,19 +2,18 @@
 .*
 !.git*
 !.editorconfig
-!.nojekyll
-!.travis.yml
-!.husky
-!.commitlintrc.json
-!.versionrc.json
 
-# bundler cache
+# jekyll
 _site
+.jekyll-cache
+.jekyll-metadata
 vendor
 
 # rubygem
 *.gem
 
-# npm dependencies
+# dependencies
 node_modules
 package-lock.json
+_assets/yarn
+yarn-error.log

@@ -1,11 +1,8 @@
 ---
 title: JWT Confusion and SSTI - CyberSanta CTF Naughty or Nice Web Challenge 
-author: stigward 
 date: 2021-12-10 11:33:00 +0800
-categories: [CTF, Web]
+description: "Exploiting a JWT verification flaw and an SSTI vulnerability to get RCE in the CyberSanta CTF Naughty or Nice web challenge."
 tags: [web, ctf, ssti, jwt]
-math: true
-img_path: /assets/img/img_non/
 ---
 
 
@@ -22,12 +19,12 @@ to obtain remote code execution and read the flag.
 
 Navigating to the site, we are greeted with a "Naughty Or Nice" list and the option to navigate to a sign-in page.
 
-![naughty_nice_list](homepage.png)
+![naughty_nice_list](/assets/img/img_non/homepage.png)
 
 The sign-in page allows us to register for an account and use our credentials to login. Once logged in,
 we are redirected to the `/dashboard` endpoint. This endpoint displays a message saying that we "shall not pass".
 
-![unauth_dashboard](unauth_dashboard.png)
+![unauth_dashboard](/assets/img/img_non/unauth_dashboard.png)
 
 A quick glance at the code in `/challenge/routes/index.js` shows the following for a the `/dashboard` endpoint:
 
@@ -49,11 +46,11 @@ This shows that if we are the `admin` user, then we will get routed to the Admin
 
 Once logged in, we get a JWT token.
 
-![jwt](dashboard_cookie.png)
+![jwt](/assets/img/img_non/dashboard_cookie.png)
 
 Using [jwt.io](https://jwt.io) we can see in the decoded JWT that it is using `RS256` and the data section contains our username and a public key.
 
-![jwt_decode](jwt.png)
+![jwt_decode](/assets/img/img_non/jwt.png)
 
 Back in the code base, we find `JWTHelper.js` in the `/challenge/helpers/` directory. It contains the code to both create and verify the JWT tokens the web-app uses. 
 
@@ -136,17 +133,17 @@ key = jwt.sign(data, publicKey, { algorithm:'HS256' })
 console.log(key)
 ```
 
-![admin_jwt](admin_jwt.png)
+![admin_jwt](/assets/img/img_non/admin_jwt.png)
 
 If we decode our new JWT, we now see the following:
-![admin_decode](admin_decode.png)
+![admin_decode](/assets/img/img_non/admin_decode.png)
 
 Go back to the web-app, and set our cookie to the new JWT.
 
-![new_jwt](set_cookie.png)
+![new_jwt](/assets/img/img_non/set_cookie.png)
 
 Refresh, and we are in the `admin` dashboard!
-![admin_dash](admin_dashboard.png)
+![admin_dash](/assets/img/img_non/admin_dashboard.png)
 
 ## Getting The Flag
 
@@ -203,13 +200,13 @@ module.exports = {
 Here, we see the code base is leveraging Nunjucks to help render the card. [Nunjucks](https://mozilla.github.io/nunjucks/) is a templating engine specifically for
 JavaScript, which immediately makes me think this might be some sort of template injection vulnerability. We can do a quick test to confirm. 
 
-First, we edit one of the items to contain `{{7*7}}`.
+First, we edit one of the items to contain {% raw %}`{{7*7}}`{% endraw %}.
 
-![7_7](test_payload.png)
+![7_7](/assets/img/img_non/test_payload.png)
 
-Navigating back to the homepage, we see that the our `{{7*7}}` payload renders as `49`, confirming that we have found a Server Side Template Injection!
+Navigating back to the homepage, we see that the our {% raw %}`{{7*7}}`{% endraw %} payload renders as `49`, confirming that we have found a Server Side Template Injection!
 
-![49](49.png)
+![49](/assets/img/img_non/49.png)
 
 If we continue to poke around on Google, we find some research has already been done on SSTI within Nunjucks. Nunjucks template code runs in a sandbox, so in order to get RCE we 
 need to break out of that sandbox and access the underlying OS. If you are interested in how this sandbox escape works, checkout the pre-existing research that I used as a reference during this challenge - 
@@ -230,10 +227,10 @@ First, we run
 {% raw %}{{range.constructor("return global.process.mainModule.require('child_process').execSync('ls /')")()}}{% endraw %}
 ```
 
-![ls](ls.png)
+![ls](/assets/img/img_non/ls.png)
 
 We see the flag here, and we can change the payload to `cat` it out!
 
-![see_flag](see_flag.png)
-![flag](flag.png)
-![flag](flag_contents.png)
+![see_flag](/assets/img/img_non/see_flag.png)
+![flag](/assets/img/img_non/flag.png)
+![flag](/assets/img/img_non/flag_contents.png)

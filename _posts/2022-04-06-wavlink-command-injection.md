@@ -1,11 +1,8 @@
 ---
 title: Wavlink Command Injection - CVE-2022-23900 
-author: stigward 
 date: 2022-04-06 11:33:00 +0800
-categories: [Vuln Research, IoT]
+description: "An unauthenticated command injection in the Wavlink WL-WN531P3 router API, exploitable from the internet via CSRF."
 tags: [firmware, research, iot]
-math: true
-mermaid: true
 ---
 
 # Wavlink Command Injection (CVE-2022–23900)
