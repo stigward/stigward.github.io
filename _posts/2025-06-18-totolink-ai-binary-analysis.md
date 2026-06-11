@@ -86,18 +86,17 @@ It’s also quite possible that other true positives included here have already 
 We would generally be hesitant to drop 0-days, but given the findings and the consistent [lack](https://github.com/SpikeReply/advisories/blob/main/cve/totolink/cve-2024-27521.md) of vendor response for the last 3 years, the T10 should be treated as EOL from a security perspective at this point. We _will,_ however, refrain from dropping full PoCs.
 ### Command Injection Vulnerabilities
 
-|            |                   |                                        |                                                  |
-| ---------- | ----------------- | -------------------------------------- | ------------------------------------------------ |
 | Function   | Endpoint          | Description                            | Human Triage                                     |
+| ---------- | ----------------- | -------------------------------------- | ------------------------------------------------ |
 | sub_41f89c | setNoticeCfg      | noticeUrl parameter command injection  | [True Positive] - CVE-2025-28035, CVE-2025-28036 |
 | sub_41c90c | informSlaveUpdate | echo command with unescaped user input | [True Positive] - No CVE                         |
 | sub_4267a0 | N/A               | arg1 parameter command injection       | [False Positive] - Dead Code                     |
 | sub_427d3c | N/A               | md5sum command injection               | [False Positive] - Not attacker controlled       |
+
 ### Memory Corruption Vulnerabilities
 
-|            |                      |                                                 |                                                                         |
-| ---------- | -------------------- | ----------------------------------------------- | ----------------------------------------------------------------------- |
 | Function   | Endpoint             | Description                                     | CVE                                                                     |
+| ---------- | -------------------- | ----------------------------------------------- | ----------------------------------------------------------------------- |
 | sub_4263e8 | setIpv6WanCfg        | overflow with routername parameter              | [True Positive] - No CVE                                                |
 | sub_42131c | setWiFiWpsStart      | overflow with WPS PIN                           | [False Positive] - Conditional Constraint                               |
 | sub_4166b8 | setIpv6LanCfg        | overflow with dnsAddr, potrName parameters      | [True Positive] - No CVE                                                |
@@ -127,6 +126,7 @@ We would generally be hesitant to drop 0-days, but given the findings and the co
 | sub_414b68 | setWiFiWpsCfg        | overflow with wifiIdx parameter                 | [False Positive] - Not a vulnerability                                  |
 | sub_40f738 | getIpPortFilterRules | strcpy overflow with desc field                 | [False Positive]                                                        |
 | sub_407f80 | getUrlFilterRules    | strcpy from 88-byte to 64-byte buffer           | [False Positive] - Not Attacker Controlled                              |
+
 ## Interesting Findings:
 
 ### The Good
@@ -143,7 +143,7 @@ Here, it demonstrates the ability to trace data-flow across multiple function ca
 
 Sometimes though, the agent totally whiffs - even on seemingly easier RCAs than the ones above. For example, take the supposed command injection in sub_427d3c . The following description is provided:
 
-> The function sub_427d3c constructs a shell command via sprintf: \"md5sum %s | cut -d ' ' -f0 \", using the untrusted arg1 directly into the command line. The resulting string is then passed to getCmdStr, which invokes a shell or system call to execute the command. An attacker controlling arg1 can inject arbitrary shell metacharacters (e.g., \"; rm -rf /\"), leading to command injection and full code execution.
+> The function sub_427d3c constructs a shell command via sprintf: `md5sum %s | cut -d ' ' -f0`, using the untrusted arg1 directly into the command line. The resulting string is then passed to getCmdStr, which invokes a shell or system call to execute the command. An attacker controlling arg1 can inject arbitrary shell metacharacters (e.g., \"; rm -rf /\"), leading to command injection and full code execution.
 
 But, one look at the cross references tells you arg1 is always hard-coded - so this would never be exploitable. Sometimes, it even confidently states information about the call stack which is blatantly incorrect. Take the reasoning from the sub_423f5c finding:
 
