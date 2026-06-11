@@ -1,7 +1,7 @@
 # Mandatory settings
 
 blog_theme: dark # Or use light
-name: Stigward's Security Journal
+name: Stig's Lab Notes 
 paginate: 10
 url: https://stigward.github.io
 baseurl: ''
